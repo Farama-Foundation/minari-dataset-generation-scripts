@@ -1,7 +1,7 @@
 
 import gymnasium as gym
 from controller import WaypointController
-from minari.utils.other_option_data_collector import DataCollectorV0, StepPreProcessor
+from minari import DataCollectorV0, StepPreProcessor
 import minari
 import numpy as np
 import argparse
