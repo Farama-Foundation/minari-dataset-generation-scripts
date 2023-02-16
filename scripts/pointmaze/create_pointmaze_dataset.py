@@ -75,7 +75,7 @@ if __name__ == "__main__":
             print('STEPS RECORDED:')
             print(n_step)
             if args.dataset_name not in minari.list_local_datasets(verbose=False):
-                dataset = minari.create_dataset_from_collector_env(collector_env=collector_env, dataset_name=args.dataset_name, algorithm_name=args.maze_solver, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author=args.author, author_email=args.author_email)
+                dataset = minari.create_dataset_from_collector_env(collector_env=collector_env, dataset_name=args.dataset_name,  algorithm_name=args.maze_solver, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author=args.author, author_email=args.author_email)
             else:
                 # Update local Minari dataset every 200000 steps.
                 # This works as a checkpoint to not lose the already collected data

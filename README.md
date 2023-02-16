@@ -12,6 +12,9 @@ pip install -r requirements.txt
 
 ## Create datasets
 ### Point Maze
+<p align="center">
+  <img src="gifs/pointmaze.gif" width="100" />
+</p>
 The point maze datasets have been regenerated using the same `q_iteration` expert policy as in the original D4RL paper. The environments used can be found [here](https://robotics.farama.org/envs/maze/point_maze/).
 
 You can run the script used to regenerate the datasets with:
