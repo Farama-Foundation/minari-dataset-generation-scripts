@@ -22,7 +22,7 @@ python scripts/pointmaze/create_pointmaze_dataset --env "PointMaze_UMaze-v3" --d
 This will generate a local Minari dataset named `pointmaze-umaze-v0` for the `PointMaze_UMaze-v3` environment, using `q_iteration` as the expert policy, Depth First Search can also be used as the algorithm to generate a path to the goal by passing "DFS" instead of "QIteration".
 
 ### Adroit Hand
-The Minari datasets for the Adroit Hand environments are recreated by reading and adapting the original datasets to the Minari standards. The dataset versions from D4RL are `v1` and the new Minari datasets name are relabeled to version `v0`. The datasets for the environments include `human`, `expert`, and `cloned`, and they can be created as follows:
+The Minari datasets for the Adroit Hand environments are recreated by reading the original D4RL datasets and adapting them to the Minari standards. The [dataset versions from D4RL](https://github.com/Farama-Foundation/D4RL/wiki/Tasks#adroit) are `v1` and the new Minari datasets name are relabeled to version `v0`. The datasets for the environments include `human`, `expert`, and `cloned`, and they can be created as follows:
 
 `AdroitHandDoor-v1`:
 ```
