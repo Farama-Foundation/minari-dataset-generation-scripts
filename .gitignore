@@ -1,0 +1,5 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# downloaded d4rl datasets
+scripts/adroit/d4rl_datasets
