@@ -2,9 +2,8 @@ import h5py
 import minari
 import os
 import gymnasium as gym
-from utils import AdroitStepPreProcessor, download_dataset_from_url
+from utils import AdroitStepDataCallback, download_dataset_from_url
 from minari import DataCollectorV0
-from gymnasium_robotics.envs.adroit_hand.wrappers import SetInitialState
 
 
 if __name__ == "__main__":
@@ -21,8 +20,8 @@ if __name__ == "__main__":
         
         d4rl_url = f'http://rail.eecs.berkeley.edu/datasets/offline_rl/hand_dapg_v1/{d4rl_dataset_name}.hdf5'
         download_dataset_from_url(d4rl_url)
-        env = SetInitialState(gym.make('AdroitHandPen-v1', max_episode_steps=200))
-        env = DataCollectorV0(env, step_data_callback=AdroitStepPreProcessor, record_infos=True, max_buffer_steps=200000)
+        env = gym.make('AdroitHandPen-v1', max_episode_steps=200)
+        env = DataCollectorV0(env, step_data_callback=AdroitStepDataCallback, record_infos=True, max_buffer_steps=200000)
 
         print(f'Recreating {d4rl_dataset_name} D4RL dataset to Minari {minari_dataset_name}')
         with h5py.File(f'd4rl_datasets/{d4rl_dataset_name}.hdf5', 'r') as f:

@@ -16,7 +16,7 @@ def download_dataset_from_url(dataset_url):
         raise IOError("Failed to download dataset from %s" % dataset_url)
     return dataset_filepath
 
-class AdroitStepPreProcessor(StepDataCallback):
+class AdroitStepDataCallback(StepDataCallback):
     def __call__(self, env, **kwargs):
         step_data = super().__call__(env, **kwargs)
         step_data['state'] = env.get_env_state()
