@@ -2,7 +2,6 @@ import os
 import h5py
 import minari
 import gymnasium as gym
-from PIL import Image
 from utils import AdroitStepPreProcessor, download_dataset_from_url
 from minari import DataCollectorV0
 from gymnasium_robotics.envs.adroit_hand.wrappers import SetInitialState
@@ -22,17 +21,9 @@ if __name__ == "__main__":
         
         d4rl_url = f'http://rail.eecs.berkeley.edu/datasets/offline_rl/hand_dapg_v1/{d4rl_dataset_name}.hdf5'
         download_dataset_from_url(d4rl_url)
-        env = SetInitialState(gym.make('AdroitHandDoor-v1', max_episode_steps=max_episode_steps[dset], render_mode="rgb_array"))
-        
-        
-        
-        
-        
-        
-        
-        
-        # env = SetInitialState(gym.make('AdroitHandDoor-v1', max_episode_steps=max_episode_steps[dset]))
-        # env = DataCollectorV0(env, step_data_callback=AdroitStepPreProcessor, record_infos=True, max_buffer_steps=200000)
+
+        env = SetInitialState(gym.make('AdroitHandDoor-v1', max_episode_steps=max_episode_steps[dset]))
+        env = DataCollectorV0(env, step_data_callback=AdroitStepPreProcessor, record_infos=True, max_buffer_steps=200000)
         
         print(f'Recreating {d4rl_dataset_name} D4RL dataset to Minari {minari_dataset_name}')
         with h5py.File(f'd4rl_datasets/{d4rl_dataset_name}.hdf5', 'r') as f:
@@ -44,7 +35,6 @@ if __name__ == "__main__":
             timeouts = f['timeouts'][:]
             
         reset = True
-        frames = []
         for i, (timeout, observation, action, door_pos, qpos, qvel) in enumerate(zip(timeouts, observations, actions, door_poses, qposes, qvels)):
             if reset:
                 state_dict = {'qpos': qpos, 'qvel': qvel, 'door_body_pos': door_pos}
@@ -56,26 +46,12 @@ if __name__ == "__main__":
                 print(i)
                 
             obs, rew, terminated, truncated, info = env.step(action)
-            frame = env.render()
-            frames.append(Image.fromarray(frame))
                 
             if timeout:
                 reset = True
-                break
 
-        # minari.create_dataset_from_collector_env(collector_env=env, dataset_name=minari_dataset_name, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")    
+        minari.create_dataset_from_collector_env(collector_env=env, dataset_name=minari_dataset_name, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")    
 
         env.close()
-        
-        frames[0].save(
-            os.path.join(
-                os.path.dirname(__file__),
-                "gifs",
-            "door.gif"),
-            save_all=True,
-            append_images=frames[1:],
-            duration=50,
-            loop=0,
-        )
-    
-    # minari.list_local_datasets()
+
+    minari.list_local_datasets()
