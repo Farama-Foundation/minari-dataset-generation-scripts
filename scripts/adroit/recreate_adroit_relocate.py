@@ -68,7 +68,6 @@ if __name__ == "__main__":
                 
             if timeout:
                 reset_called = True
-                break
 
         minari.create_dataset_from_collector_env(collector_env=env, dataset_name=minari_dataset_name, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
         
