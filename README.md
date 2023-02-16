@@ -19,26 +19,27 @@ You can run the script used to regenerate the datasets with:
 python scripts/pointmaze/create_pointmaze_dataset --env "PointMaze_UMaze-v3" --dataset_name="pointmaze-umaze-v0" --maze-solver="QIteration"
 ```
 
-This will generate a local Minari dataset named `pointmaze-umaze-v0` for the `PointMaze_UMaze-v3` environment, using `q_iteration` as the expert policy, Depth First Search can
-also be used as the algorithm to generate a path to the goal by passing "DFS" instead of "QIteration".
+This will generate a local Minari dataset named `pointmaze-umaze-v0` for the `PointMaze_UMaze-v3` environment, using `q_iteration` as the expert policy, Depth First Search can also be used as the algorithm to generate a path to the goal by passing "DFS" instead of "QIteration".
 
 ### Adroit Hand
-The Minari datasets for the Adroit Hand environments
+The Minari datasets for the Adroit Hand environments are recreated by reading and adapting the original datasets to the Minari standards. The dataset versions from D4RL are `v1` and the new Minari datasets name are relabeled to version `v0`. The datasets for the environments include `human`, `expert`, and `cloned`, and they can be created as follows:
 
+`AdroitHandDoor-v1`:
 ```
-python recreate_adroit_door.py
-```
-
-```
-python recreate_adroit_hammer.py
+python scripts/adroit/recreate_adroit_door.py
 ```
 
+`AdroitHandHammer-v1`:
 ```
-python recreate_adroit_pen.py
+python scripts/adroit/recreate_adroit_hammer.py
 ```
-
+`AdroitHandPen-v1`:
 ```
-python recreate_adroit_relocate.py
+python scripts/adroit/recreate_adroit_pen.py
+```
+`AdroitHandRelocate-v1`:
+```
+python scripts/adroit/recreate_adroit_relocate.py
 ```
 
 ### More datasets to come
