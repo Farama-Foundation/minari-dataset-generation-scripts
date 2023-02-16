@@ -12,9 +12,17 @@ pip install -r requirements.txt
 
 ## Create datasets
 ### Point Maze
-The point maze datasets have been regenerated using the same `q_iteration` expert policy as in the original D4RL paper. The environments used can be found [here]()
+The point maze datasets have been regenerated using the same `q_iteration` expert policy as in the original D4RL paper. The environments used can be found [here]().
+
+You can run the script used to regenerate the datasets with:
 ```
-python scripts/pointmaze/create_pointmaze_dataset --env 
+python scripts/pointmaze/create_pointmaze_dataset --env "
 ```
 ### Adroit Hand
 The Minari datasets for the Adroit Hand environments
+
+### More datasets to come
+* `AntMaze`
+* `Gymnasium Mujoco`
+* `KitchenFranka`
+* `Minigrid`
