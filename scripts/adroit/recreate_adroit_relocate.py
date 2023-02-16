@@ -6,6 +6,7 @@ import numpy as np
 import gymnasium as gym
 from utils import AdroitStepPreProcessor, download_dataset_from_url
 from minari import DataCollectorV0
+from PIL import Image
 from gymnasium_robotics.envs.adroit_hand.wrappers import SetInitialState
     
 
@@ -51,27 +52,43 @@ if __name__ == "__main__":
 
         env.close()
 
-        env = SetInitialState(gym.make('AdroitHandRelocate-v1', max_episode_steps=200))
-        env = DataCollectorV0(env, step_data_callback=AdroitStepPreProcessor, record_infos=True, max_buffer_steps=10000)
+        env = SetInitialState(gym.make('AdroitHandRelocate-v1', max_episode_steps=max_episode_steps[dset], render_mode="rgb_array"))
+        # env = SetInitialState(gym.make('AdroitHandRelocate-v1', max_episode_steps=200))
+        # env = DataCollectorV0(env, step_data_callback=AdroitStepPreProcessor, record_infos=True, max_buffer_steps=10000)
 
         reset_called = True
         last_episode_step = 0
-        for i, (timeout, observation, action, target_pos, obj_pos, reward, qpos, qvel) in enumerate(zip(timeouts, observations, actions, target_poses, obj_poses, qposes, qvels)):
+        frames = []
+        for i, (timeout, observation, action, target_pos, obj_pos, qpos, qvel) in enumerate(zip(timeouts, observations, actions, target_poses, obj_poses, qposes, qvels)):
             if reset_called:
                 state_dict = {'qpos': qpos, 'qvel': qvel, 'obj_pos': obj_pos, 'target_pos': target_pos}
                 env.reset(initial_state_dict=state_dict)
                 reset_called=False
             # assert not np.allclose(observation, obs, rtol=1e-2, atol=1e-4)
             obs, rew, terminated, truncated, info = env.step(action)
+            frame = env.render()
+            frames.append(Image.fromarray(frame))
             
             if i % 50000 == 0:
                 print(i)
                 
             if timeout:
-                reset_called = True 
+                reset_called = True
+                break
 
-        minari.create_dataset_from_collector_env(collector_env=env, dataset_name=minari_dataset_name, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
+        # minari.create_dataset_from_collector_env(collector_env=env, dataset_name=minari_dataset_name, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
         
         env.close()
+        
+        frames[0].save(
+            os.path.join(
+                os.path.dirname(__file__),
+                "gifs",
+            "relocate.gif"),
+            save_all=True,
+            append_images=frames[1:],
+            duration=50,
+            loop=0,
+        )
     
     minari.list_local_datasets()
