@@ -27,7 +27,7 @@ This will generate a local Minari dataset named `pointmaze-umaze-v0` for the `Po
   <img src="gifs/door.gif" width="100" />
   <img src="gifs/hammer.gif" width="100" /> 
   <img src="gifs/pen.gif" width="100" />
-  <img src="gifs/relocte.gif" width="100" />
+  <img src="gifs/relocate.gif" width="100" />
 </p>
 
 
