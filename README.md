@@ -23,7 +23,7 @@ This will generate a local Minari dataset named `pointmaze-umaze-v0` for the `Po
 
 ### Adroit Hand
 
-<p float="left">
+<p align="center">
   <img src="gifs/door.gif" width="100" />
   <img src="gifs/hammer.gif" width="100" /> 
   <img src="gifs/pen.gif" width="100" />
