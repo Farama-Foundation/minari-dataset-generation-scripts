@@ -10,6 +10,10 @@ EXPLORATION_ACTIONS = {UP: (0, 1), DOWN: (0, -1), LEFT: (-1, 0), RIGHT: (1, 0)}
 
 
 class QIteration:
+    """Solves for optimal policy.
+    
+    Inspired by https://github.com/Farama-Foundation/D4RL/blob/master/d4rl/pointmaze/q_iteration.py
+    """
     def __init__(self, maze):
         self.maze = maze
         self.num_states = maze.map_length * maze.map_width

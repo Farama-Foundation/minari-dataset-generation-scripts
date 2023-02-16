@@ -4,6 +4,8 @@ from maze_solver import DFS, QIteration
 
 class WaypointController:
     """Point agent controller to follow waypoints in the maze.
+    
+    Inspired by https://github.com/Farama-Foundation/D4RL/blob/master/d4rl/pointmaze/waypoint_controller.py
     """
     def __init__(self, maze, gains={"p": 10.0, "d": -1.0}, maze_solver="DFS", waypoint_threshold=0.1):
         self.global_target_xy = np.empty(2)
