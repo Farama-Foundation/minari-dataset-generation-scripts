@@ -1,38 +1,55 @@
 import h5py
 import minari
+import os
 import gymnasium as gym
-from utils import AdroitStepPreProcessor
-from minari.utils.other_option_data_collector import DataCollectorV0
+from utils import AdroitStepPreProcessor, download_dataset_from_url
+from minari import DataCollectorV0
 from gymnasium_robotics.envs.adroit_hand.wrappers import SetInitialState
 
 
 if __name__ == "__main__":
-    env = SetInitialState(gym.make('AdroitHandPen-v1', max_episode_steps=200))
-    env = DataCollectorV0(env, step_preprocessor=AdroitStepPreProcessor, record_infos=True, max_steps_buffer=10000)
-
-    with h5py.File('/home/rodrigo/Downloads/pen-human-v1.hdf5', 'r') as f:
-        actions = f['actions'][:]
-        observations = f['observations'][:]
-        timeouts = f['timeouts'][:]
-        rewards = f['rewards'][:]
-        qposes = f['infos']['qpos'][:]
-        qvels = f['infos']['qvel'][:]
-        desired_oriens = f['infos']['desired_orien'][:]
+    # create directory to store the original d4rl datasets
+    if not os.path.exists('d4rl_datasets'):
+        os.makedirs('d4rl_datasets')
+    
+    # human episode steps vary between 250-300, for expert all trajectories have lenght of 200, and for cloned
+    max_episode_steps = {'human': 300, 'cloned': 300, 'expert': 200}
+    
+    for dset in ['human', 'expert', 'cloned']:
+        d4rl_dataset_name = 'pen-' + dset + '-v1'
+        minari_dataset_name = 'pen-' + dset + '-v0'
         
-    reset_called = True
-    last_episode_step = 0
-    for i, (timeout, observation, action, qpos, qvel, desired_orien, reward) in enumerate(zip(timeouts, observations, actions, qposes, qvels, desired_oriens, rewards)):
-        if reset_called:
-            state_dict = {'qpos': qpos, 'qvel': qvel, 'desired_orien': desired_orien}
-            env.reset(initial_state_dict=state_dict)
-            reset_called=False      
+        d4rl_url = f'http://rail.eecs.berkeley.edu/datasets/offline_rl/hand_dapg_v1/{d4rl_dataset_name}.hdf5'
+        download_dataset_from_url(d4rl_url)
+        env = SetInitialState(gym.make('AdroitHandPen-v1', max_episode_steps=200))
+        env = DataCollectorV0(env, step_data_callback=AdroitStepPreProcessor, record_infos=True, max_buffer_steps=200000)
+
+        print(f'Recreating {d4rl_dataset_name} D4RL dataset to Minari {minari_dataset_name}')
+        with h5py.File(f'd4rl_datasets/{d4rl_dataset_name}.hdf5', 'r') as f:
+            actions = f['actions'][:]
+            observations = f['observations'][:]
+            timeouts = f['timeouts'][:]
+            qposes = f['infos']['qpos'][:]
+            qvels = f['infos']['qvel'][:]
+            desired_oriens = f['infos']['desired_orien'][:]
             
-        obs, rew, terminated, truncated, info = env.step(action)
-        
-        if timeout:
-            print('TIMEOUT STEP')
-            print(i-last_episode_step)
-            last_episode_step = i
-            reset_called = True
+        reset_called = True
+        for i, (timeout, observation, action, qpos, qvel, desired_orien) in enumerate(zip(timeouts, observations, actions, qposes, qvels, desired_oriens)):
+            if reset_called:
+                state_dict = {'qpos': qpos, 'qvel': qvel, 'desired_orien': desired_orien}
+                env.reset(initial_state_dict=state_dict)
+                reset_called=False
+                     
+            if i % 50000 == 0:
+                print(i)
+                   
+            obs, rew, terminated, truncated, info = env.step(action)
+            
+            if timeout:
+                reset_called = True
 
-    minari.create_dataset_from_collector_env(collector_env=env, dataset_name="pen-human-v0", code_permalink=None, author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
+        minari.create_dataset_from_collector_env(collector_env=env, dataset_name=minari_dataset_name, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
+        
+        env.close()
+    
+    minari.list_local_datasets()

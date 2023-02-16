@@ -1,4 +1,5 @@
-import gymnasium as gym
+import os
+import urllib
 from minari import StepDataCallback
 
 def filepath_from_url(dataset_url):

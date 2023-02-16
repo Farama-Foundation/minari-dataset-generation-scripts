@@ -1,18 +1,19 @@
 import os
 import h5py
 import minari
-import urllib
 import gymnasium as gym
-from utils import AdroitStepPreProcessor
+from utils import AdroitStepPreProcessor, download_dataset_from_url
 from minari import DataCollectorV0
 from gymnasium_robotics.envs.adroit_hand.wrappers import SetInitialState
 
 
 if __name__ == "__main__":
-    
     # create directory to store the original d4rl datasets
     if not os.path.exists('d4rl_datasets'):
         os.makedirs('d4rl_datasets')
+    
+    # human episode steps vary between 250-300, for expert all trajectories have lenght of 200, and for cloned 250-300
+    max_episode_steps = {'human': 300, 'cloned': 300, 'expert': 200}
     
     for dset in ['human', 'expert', 'cloned']:
         d4rl_dataset_name = 'door-' + dset + '-v1'
@@ -20,10 +21,10 @@ if __name__ == "__main__":
         
         d4rl_url = f'http://rail.eecs.berkeley.edu/datasets/offline_rl/hand_dapg_v1/{d4rl_dataset_name}.hdf5'
         download_dataset_from_url(d4rl_url)
-        env = SetInitialState(gym.make('AdroitHandDoor-v1', max_episode_steps=600))
+        env = SetInitialState(gym.make('AdroitHandDoor-v1', max_episode_steps=max_episode_steps[dset]))
         env = DataCollectorV0(env, step_data_callback=AdroitStepPreProcessor, record_infos=True, max_buffer_steps=200000)
         
-        
+        print(f'Recreating {d4rl_dataset_name} D4RL dataset to Minari {minari_dataset_name}')
         with h5py.File(f'd4rl_datasets/{d4rl_dataset_name}.hdf5', 'r') as f:
             qposes = f['infos']['qpos'][:]
             qvels = f['infos']['qvel'][:]
@@ -33,7 +34,6 @@ if __name__ == "__main__":
             timeouts = f['timeouts'][:]
             
         reset = True
-        last_episode_step = 0
         for i, (timeout, observation, action, door_pos, qpos, qvel) in enumerate(zip(timeouts, observations, actions, door_poses, qposes, qvels)):
             if reset:
                 state_dict = {'qpos': qpos, 'qvel': qvel, 'door_body_pos': door_pos}
@@ -49,6 +49,8 @@ if __name__ == "__main__":
             if timeout:
                 reset = True
 
-        minari.create_dataset_from_collector_env(collector_env=env, dataset_name="door-cloned-v0", code_permalink=None, author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")    
+        minari.create_dataset_from_collector_env(collector_env=env, dataset_name=minari_dataset_name, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")    
 
         env.close()
+    
+    minari.list_local_datasets()
