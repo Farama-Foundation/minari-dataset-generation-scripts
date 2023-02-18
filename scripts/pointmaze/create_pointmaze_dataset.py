@@ -58,7 +58,7 @@ if __name__ == "__main__":
     #     truncation value to True when target is reached
     #   * Record the 'info' value of every step
     #   * Record 100000 in in-memory buffers before dumpin everything to temporary file in disk       
-    collector_env = DataCollectorV0(env, step_preprocessor=PointMazeStepDataCallback, record_infos=True, max_steps_buffer=100000)
+    collector_env = DataCollectorV0(env, step_data_callback=PointMazeStepDataCallback, record_infos=True, max_buffer_steps=100000)
 
     obs, _ = collector_env.reset(seed=123)
 
