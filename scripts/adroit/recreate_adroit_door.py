@@ -37,7 +37,7 @@ if __name__ == "__main__":
         for i, (timeout, observation, action, door_pos, qpos, qvel) in enumerate(zip(timeouts, observations, actions, door_poses, qposes, qvels)):
             if reset:
                 state_dict = {'qpos': qpos, 'qvel': qvel, 'door_body_pos': door_pos}
-                env.reset(initial_state_dict=state_dict)      
+                env.reset(options={'initial_state_dict': state_dict})      
                 reset=False
             # assert np.allclose(observation, obs, rtol=1e-2, atol=1e-4)
 

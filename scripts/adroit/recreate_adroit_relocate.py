@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
         env.close()
 
-        env = gym.make('AdroitHandRelocate-v1', max_episode_steps=200)
+        env = gym.make('AdroitHandRelocate-v1', max_episode_steps=max_episode_steps[dset])
         env = DataCollectorV0(env, step_data_callback=AdroitStepDataCallback, record_infos=True, max_buffer_steps=10000)
 
         reset_called = True
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         for i, (timeout, observation, action, target_pos, obj_pos, qpos, qvel) in enumerate(zip(timeouts, observations, actions, target_poses, obj_poses, qposes, qvels)):
             if reset_called:
                 state_dict = {'qpos': qpos, 'qvel': qvel, 'obj_pos': obj_pos, 'target_pos': target_pos}
-                env.reset(initial_state_dict=state_dict)
+                env.reset(options={'initial_state_dict': state_dict})
                 reset_called=False
             # assert not np.allclose(observation, obs, rtol=1e-2, atol=1e-4)
             obs, rew, terminated, truncated, info = env.step(action)
