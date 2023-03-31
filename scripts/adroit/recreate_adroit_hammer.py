@@ -11,7 +11,7 @@ if __name__ == "__main__":
         os.makedirs('d4rl_datasets')
     
     # human episode steps vary between 300-650, for expert all trajectories have lenght of 200, and for cloned
-    max_episode_steps = {'human': 650, 'cloned': 650, 'expert': 200}
+    max_episode_steps = {'human': 625, 'cloned': 625, 'expert': 200}
     
     for dset in ['human', 'expert', 'cloned']:
         d4rl_dataset_name = 'hammer-' + dset + '-v1'
@@ -19,7 +19,7 @@ if __name__ == "__main__":
         
         d4rl_url = f'http://rail.eecs.berkeley.edu/datasets/offline_rl/hand_dapg_v1/{d4rl_dataset_name}.hdf5'
         download_dataset_from_url(d4rl_url)
-        env = gym.make('AdroitHandHammer-v1', max_episode_steps=650)
+        env = gym.make('AdroitHandHammer-v1', max_episode_steps=max_episode_steps[dset])
         env = DataCollectorV0(env, step_data_callback=AdroitStepDataCallback, record_infos=True, max_buffer_steps=200000)
 
         print(f'Recreating {d4rl_dataset_name} D4RL dataset to Minari {minari_dataset_name}')

@@ -14,7 +14,7 @@ if __name__ == "__main__":
     # human episode steps vary between 250-300, for expert all trajectories have lenght of 200, and for cloned 250-300
     max_episode_steps = {'human': 300, 'cloned': 300, 'expert': 200}
     
-    for dset in ['human', 'expert', 'cloned']:
+    for dset in ['human', 'cloned', 'expert']:
         d4rl_dataset_name = 'door-' + dset + '-v1'
         minari_dataset_name = 'door-' + dset + '-v0'
         

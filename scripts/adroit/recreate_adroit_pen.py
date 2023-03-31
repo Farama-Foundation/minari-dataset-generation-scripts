@@ -12,9 +12,9 @@ if __name__ == "__main__":
         os.makedirs('d4rl_datasets')
     
     # human episode steps vary between 250-300, for expert all trajectories have lenght of 200, and for cloned
-    max_episode_steps = {'human': 300, 'cloned': 300, 'expert': 200}
+    max_episode_steps = {'human': 200, 'cloned': 200, 'expert': 200}
     
-    for dset in ['human', 'expert', 'cloned']:
+    for dset in ['human', 'cloned', 'expert']:
         d4rl_dataset_name = 'pen-' + dset + '-v1'
         minari_dataset_name = 'pen-' + dset + '-v0'
         
