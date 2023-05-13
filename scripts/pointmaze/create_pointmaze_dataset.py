@@ -64,22 +64,22 @@ if __name__ == "__main__":
 
     waypoint_controller = WaypointController(maze=env.maze)
 
-    for n_step in range(int(1e6)):
+    for n_step in range(int(50000)):
         action = waypoint_controller.compute_action(obs)
         # Add some noise to each step action
         action += np.random.randn(*action.shape)*0.5
 
         obs, rew, terminated, truncated, info = collector_env.step(action)
 
-        if (n_step + 1) % 200000 == 0:
+        if (n_step + 1) % 10000 == 0:
             print('STEPS RECORDED:')
             print(n_step + 1)
             if args.dataset_name not in minari.list_local_datasets():
-                dataset = minari.create_dataset_from_collector_env(collector_env=collector_env, dataset_name=args.dataset_name,  algorithm_name=args.maze_solver, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author=args.author, author_email=args.author_email)
+                dataset = minari.create_dataset_from_collector_env(collector_env=collector_env, dataset_id=args.dataset_name,  algorithm_name=args.maze_solver, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author=args.author, author_email=args.author_email)
             else:
                 # Update local Minari dataset every 200000 steps.
                 # This works as a checkpoint to not lose the already collected data
                 dataset.update_dataset_from_collector_env(collector_env)
     
     if args.upload_dataset:
-        minari.upload_dataset(dataset_name=args.dataset_name, path_to_private_key=args.path_to_private_key)
+        minari.upload_dataset(dataset_id=args.dataset_name, path_to_private_key=args.path_to_private_key)

@@ -2,7 +2,7 @@ import h5py
 import minari
 import os
 import gymnasium as gym
-from utils import AdroitStepDataCallback, download_dataset_from_url
+from scripts.kitchen.utils import AdroitStepDataCallback, download_dataset_from_url
 from minari import DataCollectorV0
 
 
