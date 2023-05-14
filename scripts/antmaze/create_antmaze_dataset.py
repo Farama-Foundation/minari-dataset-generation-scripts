@@ -49,7 +49,7 @@ def init_dataset(collector_env, args):
     """Initalise a local Minari dataset."""
     return minari.create_dataset_from_collector_env(
             collector_env=collector_env,
-            dataset_id=args.dataset_id,
+            dataset_name=args.dataset_name,
             algorithm_name=f"{args.maze_solver}+SAC",
             code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
             author=args.author,
@@ -69,7 +69,7 @@ if __name__ == "__main__":
                         help="total number of timesteps to collect data for")
     parser.add_argument("--timeout-steps", type=int, default=500,
                         help="max number of unsuccessful steps before env reset")
-    parser.add_argument("--dataset-id", type=str, default="antmaze-umaze-v0",
+    parser.add_argument("--dataset-name", type=str, default="antmaze-umaze-v0",
                         help="name of the Minari dataset")
     parser.add_argument("--seed", type=int, default=123,
                         help="seed for Numpy and the Gymnasium environment")
@@ -86,8 +86,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
         
     # Check if the temp dataset already exist and load to add more data
-    if args.dataset_id in minari.list_local_datasets():
-        dataset = minari.load_dataset(args.dataset_id)
+    if args.dataset_name in minari.list_local_datasets():
+        dataset = minari.load_dataset(args.dataset_name)
     else:
         dataset = None
     
@@ -148,6 +148,6 @@ if __name__ == "__main__":
             
     if args.upload_dataset:
         minari.upload_dataset(
-            dataset_id=args.dataset_id,
+            dataset_name=args.dataset_name,
             path_to_private_key=args.path_to_private_key
         )
