@@ -71,7 +71,7 @@ class GoalReachAnt(GoalEnv, EzPickle):
         self.observation_space = spaces.Dict(
             dict(
                 observation=spaces.Box(
-                    -np.inf, np.inf, shape=(obs_shape[0] - 2,), dtype="float64"
+                    -np.inf, np.inf, shape=(obs_shape[0],), dtype="float64"
                 ),
                 achieved_goal=spaces.Box(-np.inf, np.inf, shape=(2,), dtype="float64"),
                 desired_goal=spaces.Box(-np.inf, np.inf, shape=(2,), dtype="float64"),
