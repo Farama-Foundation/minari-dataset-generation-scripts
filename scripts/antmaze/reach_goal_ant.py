@@ -27,15 +27,16 @@ class GoalReachAnt(GoalEnv, EzPickle):
     def __init__(
         self,
         render_mode: Optional[str] = None,
-        reward_type: str = "sparse",
         continuing_task: bool = True,
         goal_region_radius: float = 10.,
         goal_threshold: float = 0.45,
+        forward_reward_scale: float = 10.,
         **kwargs,
     ):
         self.goal_region_radius = goal_region_radius
         self.goal_threshold = goal_threshold
         self.continuing_task = continuing_task
+        self.forward_reward_scale = forward_reward_scale
         
         # Get the ant.xml path from the Gymnasium package
         ant_xml_file_path = path.join(
@@ -84,8 +85,6 @@ class GoalReachAnt(GoalEnv, EzPickle):
         )
 
         self.render_mode = render_mode
-        
-        self.reward_type = reward_type
 
         EzPickle.__init__(
             self,
@@ -98,8 +97,7 @@ class GoalReachAnt(GoalEnv, EzPickle):
     def reset(self, *, seed: Optional[int] = None, **kwargs):
         super().reset(seed=seed)
         self.goal = self._generate_goal()
-        self.ant_env.model.site_pos[self.target_site_id] = np.append(
-            self.goal, 0.75)
+        self.ant_env.model.site_pos[self.target_site_id] = np.append(self.goal, 0.75)
         obs, info = self.ant_env.reset(seed=seed)
         obs_dict = self._get_obs(obs)
 
@@ -111,7 +109,6 @@ class GoalReachAnt(GoalEnv, EzPickle):
 
         terminated = self.compute_terminated(obs["achieved_goal"], self.goal, info)
         truncated = self.compute_truncated(obs["achieved_goal"], self.goal, info)
-
         reward = self.compute_reward(obs["achieved_goal"], self.goal, info)
         
         # Create a new goal, if necessary, and update the observation
@@ -124,7 +121,7 @@ class GoalReachAnt(GoalEnv, EzPickle):
             self.render()
 
         return obs, reward, terminated, truncated, info
-    
+
     def _get_obs(self, ant_obs: np.ndarray) -> Dict[str, np.ndarray]:
         achieved_goal = ant_obs[:2]
         goal_direction = self.goal - achieved_goal
@@ -150,10 +147,17 @@ class GoalReachAnt(GoalEnv, EzPickle):
     def compute_reward(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info
     ) -> float:
-        if self.reward_type == "dense":
-            return np.exp(-np.linalg.norm(desired_goal - achieved_goal))
-        elif self.reward_type == "sparse":
-            return 1.0 if np.linalg.norm(achieved_goal - desired_goal) <= 0.45 else 0.0
+        """Compute reward based on velocity in direction of goal.
+        
+           Reward is based on the original Ant env rewards, but replacing the original
+           forward_reward with the velocity in the goal direction. This velocity is scaled
+           by a factor of 10 (by default) as the average velocity is slower than in the
+           original env due to the need to turn.
+        """
+        goal_vector = desired_goal - achieved_goal
+        velocity_vector = [info["x_velocity"], info["y_velocity"]]
+        reward_forward = np.dot(velocity_vector, goal_vector)/np.linalg.norm(goal_vector)
+        return self.forward_reward_scale*reward_forward + info["reward_ctrl"] + info["reward_survive"]
     
     def compute_truncated(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info
