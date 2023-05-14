@@ -29,8 +29,13 @@ class GoalReachAnt(GoalEnv, EzPickle):
         render_mode: Optional[str] = None,
         reward_type: str = "sparse",
         continuing_task: bool = True,
+        goal_region_radius: float = 10.,
+        goal_threshold: float = 0.45,
         **kwargs,
     ):
+        self.goal_region_radius = goal_region_radius
+        self.goal_threshold = goal_threshold
+        self.continuing_task = continuing_task
         
         # Get the ant.xml path from the Gymnasium package
         ant_xml_file_path = path.join(
@@ -108,6 +113,12 @@ class GoalReachAnt(GoalEnv, EzPickle):
         truncated = self.compute_truncated(obs["achieved_goal"], self.goal, info)
 
         reward = self.compute_reward(obs["achieved_goal"], self.goal, info)
+        
+        # Create a new goal, if necessary, and update the observation
+        if self.continuing_task and self._within_goal_threshold(obs["achieved_goal"], self.goal):
+            self.goal = self._generate_goal()
+            self.ant_env.model.site_pos[self.target_site_id] = np.append(self.goal, 0.75)
+            obs = self._get_obs(ant_obs)
 
         if self.render_mode == "human":
             self.render()
@@ -123,10 +134,10 @@ class GoalReachAnt(GoalEnv, EzPickle):
             "achieved_goal": achieved_goal.copy(),
             "desired_goal": self.goal.copy(),
         }
-    
-    def _generate_goal(self, goal_region_radius=10.):
+
+    def _generate_goal(self):
         th = 2 * np.pi * self.np_random.uniform()
-        radius = goal_region_radius * self.np_random.uniform()
+        radius = self.goal_region_radius * self.np_random.uniform()
         return radius * np.array([np.cos(th), np.sin(th)])
 
     def render(self):
@@ -152,4 +163,10 @@ class GoalReachAnt(GoalEnv, EzPickle):
     def compute_terminated(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info
     ) -> bool:
-        return bool(np.linalg.norm(achieved_goal - desired_goal) <= 0.45)
+        if self.continuing_task:
+            return False
+        return self._within_goal_threshold(achieved_goal, desired_goal, info)
+    
+    
+    def _within_goal_threshold(self, achieved_goal, desired_goal):
+        return bool(np.linalg.norm(achieved_goal - desired_goal) <= self.goal_threshold)
