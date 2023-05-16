@@ -12,7 +12,7 @@ env = gym.make(env.spec, render_mode = 'rgb_array')
 frames = []
 
 for i, eps in enumerate(dataset.iterate_episodes()):
-    if i == 2:
+    if i == 1:
         break
     env.reset(seed=eps.seed.item())
     for act in eps.actions:

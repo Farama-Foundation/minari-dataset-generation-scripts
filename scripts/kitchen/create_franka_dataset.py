@@ -73,6 +73,13 @@ class KitchenStepDataCallback(StepDataCallback):
 
 
 for dst, dir in DIR_PATH.items():
+    print(f'CREATING DATASET: {dst}')
+    if dst=='mixed' or dst=='partial':
+        max_episode_steps = 450
+    else:
+        max_episode_steps = 280
+    env = gymnasium.make('FrankaKitchen-v1', remove_task_when_completed=False, terminate_on_tasks_completed=False, tasks_to_complete=GOAL_TASKS[dst], max_episode_steps=max_episode_steps)
+    env = DataCollectorV0(env, step_data_callback=KitchenStepDataCallback, record_infos=False)
     act_mid = np.zeros(9)
     act_rng = np.ones(9)*2
     dataset = None
@@ -81,12 +88,11 @@ for dst, dir in DIR_PATH.items():
     demo_subdirs = sorted(glob.glob(pattern))
     for subdir in demo_subdirs:
         demo_files = glob.glob(os.path.join(subdir, '*.mjl'))
-        env = gymnasium.make('FrankaKitchen-v1', remove_task_when_completed=False, terminate_on_tasks_completed=False, tasks_to_complete=GOAL_TASKS[dst])
-        env = DataCollectorV0(env, step_data_callback=KitchenStepDataCallback, record_infos=False)
+        
         print(f'Demo: {subdir}')
         for demo_file in demo_files:
             episode_steps = 0
-            data = parse_mjl_logs(demo_file, 35)
+            data = parse_mjl_logs(demo_file, 40)
             obs, _ = env.reset(seed=123)
             if data['ctrl'].shape[0] > max_steps_episode:
                 max_steps_episode = data['ctrl'].shape[0]
@@ -99,10 +105,7 @@ for dst, dir in DIR_PATH.items():
 
                 episode_steps += 1
 
-        if dataset is None:
-            dataset = minari.create_dataset_from_collector_env(collector_env=env, dataset_id=f'kitchen-{dst}-v0', code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
-        else:
-            dataset.update_dataset_from_collector_env(env)
-            
+    dataset = minari.create_dataset_from_collector_env(collector_env=env, dataset_id=f'kitchen-{dst}-v0', code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
+    env.close()      
     print(f'MAX EPISODE STEPS: {max_steps_episode}')
             
