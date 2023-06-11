@@ -128,13 +128,16 @@ if __name__ == "__main__":
         return model.predict(wrap_maze_obs(obs, waypoint_xy))[0]
     
     waypoint_controller = WaypointController(env.maze, action_callback)
-    obs, _ = collector_env.reset(seed=seed)
+    obs, info = collector_env.reset(seed=seed)
    
-    steps_since_last_success = 0
+    steps_since_success = 0
+    steps_since_ckpt = 0
         
     for step in tqdm(range(args.total_timesteps)):
-        steps_since_last_success += 1
-        
+        reset = False
+        steps_since_success += 1
+        steps_since_ckpt += 1
+
         # Compute action and add some noise
         action = waypoint_controller.compute_action(obs)
         action += args.action_noise*np.random.randn(*action.shape)
@@ -144,21 +147,30 @@ if __name__ == "__main__":
 
         # Reset timeout counter (but not env, as continuing task)
         if info["success"]:
-            steps_since_last_success = 0
+            steps_since_success = 0
         
-        # Reset if the Ant has not reached the goal in 500 steps (by default)
-        if steps_since_last_success > args.timeout_steps:
-            seed += 1 # Increment the seed to prevent repeating old episodes
-            obs, _ = collector_env.reset(seed=seed)
-            steps_since_last_success = 0        
+        # Reset env if the Ant has not reached the goal in 500 steps (by default)
+        if steps_since_success > args.timeout_steps:
+            reset = True
                 
-        # Update local Minari dataset every 200000 steps (by default), and at the final step.
-        # This works as a checkpoint to not lose the already collected data
-        if ((step + 1) % args.checkpoint_interval == 0) or (step + 1 == args.total_timesteps):
+        # Update local Minari dataset every ~200000 steps (once the episode is complete),
+        # and at the final step. This works as a checkpoint to not lose the already
+        # collected data.
+        should_checkpoint = (info["success"] or reset) and (steps_since_ckpt >= args.checkpoint_interval)
+
+        if should_checkpoint or (step + 1 == args.total_timesteps):
+            steps_since_ckpt = 0
+
             if dataset is None:
                 dataset = init_dataset(collector_env, args)
             else:
                 dataset.update_dataset_from_collector_env(collector_env)
+        
+        # Reset the environment, either due to timeout or checkpointing.
+        if reset:
+            seed += 1 # Increment the seed to prevent repeating old episodes
+            obs, info = collector_env.reset(seed=seed)
+            steps_since_success = 0        
             
     if args.upload_dataset:
         minari.upload_dataset(args.dataset_name, args.path_to_private_key)
