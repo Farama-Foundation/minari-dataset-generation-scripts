@@ -69,6 +69,8 @@ if __name__ == "__main__":
                         help="total number of timesteps to collect data for")
     parser.add_argument("--timeout-steps", type=int, default=500,
                         help="max number of unsuccessful steps before env reset")
+    parser.add_argument("--action-noise", type=float, default=0.2,
+                        help="standard deviation of noise added to action")
     parser.add_argument("--dataset-name", type=str, default="antmaze-umaze-v0",
                         help="name of the Minari dataset")
     parser.add_argument("--seed", type=int, default=123,
@@ -107,7 +109,6 @@ if __name__ == "__main__":
     )
     
     seed = args.seed
-    action_noise = 0.1
     np.random.seed(seed)
     
     model = SAC.load(args.policy_file)
@@ -125,7 +126,8 @@ if __name__ == "__main__":
         
         # Compute action and add some noise
         action = waypoint_controller.compute_action(obs)
-        action += action_noise*np.random.randn(*action.shape)
+        action += args.action_noise*np.random.randn(*action.shape)
+        action = np.clip(action, -1.0, 1.0)
 
         obs, _, _, _, info = collector_env.step(action)
 
