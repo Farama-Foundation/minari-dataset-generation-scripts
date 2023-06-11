@@ -60,7 +60,7 @@ def init_dataset(collector_env, args):
     """Initalise a local Minari dataset."""
     return minari.create_dataset_from_collector_env(
             collector_env=collector_env,
-            dataset_name=args.dataset_name,
+            dataset_id=args.dataset_name,
             algorithm_name=f"{args.maze_solver}+SAC",
             code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
             author=args.author,
