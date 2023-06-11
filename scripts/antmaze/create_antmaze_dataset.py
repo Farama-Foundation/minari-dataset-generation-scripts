@@ -1,3 +1,13 @@
+"""
+This script generates AntMaze datasets.
+
+Usage:
+
+python create_antmaze_dataset.py
+
+See --help for full list of options.
+"""
+
 import gymnasium as gym
 import minari
 from minari import DataCollectorV0, StepDataCallback
@@ -26,7 +36,8 @@ class AntMazeStepDataCallback(StepDataCallback):
         # goal has been reached
         if step_data['infos']['success']:
             step_data['truncations'] = True
-           
+            
+        # To restore the MuJoCo simulation state, we need to store qpos and qvel
         step_data['infos']['qpos'] = np.concatenate([obs['achieved_goal'], obs['observation'][:13]])
         step_data['infos']['qvel'] = obs['observation'][13:]
         step_data['infos']['goal'] = obs['desired_goal']
@@ -131,6 +142,7 @@ if __name__ == "__main__":
 
         obs, _, _, _, info = collector_env.step(action)
 
+        # Reset timeout counter (but not env, as continuing task)
         if info["success"]:
             steps_since_last_success = 0
         
@@ -149,7 +161,4 @@ if __name__ == "__main__":
                 dataset.update_dataset_from_collector_env(collector_env)
             
     if args.upload_dataset:
-        minari.upload_dataset(
-            dataset_name=args.dataset_name,
-            path_to_private_key=args.path_to_private_key
-        )
+        minari.upload_dataset(args.dataset_name, args.path_to_private_key)
