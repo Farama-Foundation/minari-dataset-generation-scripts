@@ -1,5 +1,5 @@
 """
-This script runs sanity checks on AntMaze datasets.
+This script runs sanity checks on AntMaze/PointMaze datasets.
 
 Usage:
 
@@ -54,6 +54,17 @@ def check_qpos_pvel_identical_values(dataset):
 def check_qpos_qvel_shapes(dataset):
     """ Check infos/qpos and infos/qvel have the correct shapes. """
     env = dataset.recover_environment()
+
+    if hasattr(env.unwrapped, "ant_env"):
+        unwrapped_env = env.unwrapped.ant_env
+    elif hasattr(env.unwrapped, "point_env"):
+        unwrapped_env = env.unwrapped.point_env
+    else:
+        raise ValueError("Environment must be AntMaze or PointMaze.")
+
+    num_q = unwrapped_env.model.nq
+    num_v = unwrapped_env.model.nv
+
     qpos = check_dataset.get_infos(dataset, "qpos")
     qvel = check_dataset.get_infos(dataset, "qvel")
 
@@ -64,9 +75,6 @@ def check_qpos_qvel_shapes(dataset):
 
     for i, ep in enumerate(dataset):
         num_steps = ep.total_timesteps + 1      # Same number of steps as observation
-        num_q = env.unwrapped.ant_env.model.nq
-        num_v = env.unwrapped.ant_env.model.nv
-
         qpos_shape_message = (f"Expected infos/qpos (episode {i}) to have shape "
                               f"{(num_steps, num_q)}, got {qpos[i].shape}")
         qvel_shape_message = (f"Expected infos/qvel (episode {i}) to have shape "
@@ -87,6 +95,7 @@ def run_antmaze_checks(dataset, verbose=True):
     # Run all of the common checks first
     passed = check_dataset.run_all_checks(dataset)
 
+
     # Then run AntMaze specific checks
     for check_fn in antmaze_check_functions:
         try:
@@ -98,6 +107,8 @@ def run_antmaze_checks(dataset, verbose=True):
         else:
             if verbose:
                 print(f"PASSED: {check_fn.__name__}")
+
+    return passed
 
 
 if __name__ == "__main__":
