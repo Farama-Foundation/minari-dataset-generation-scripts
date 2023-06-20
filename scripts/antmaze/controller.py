@@ -1,5 +1,11 @@
-from maze_solver import DFS, QIteration
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from pointmaze.maze_solver import DFS, QIteration
+
+#from maze_solver import DFS, QIteration
 import numpy as np
+
 
 
 class WaypointController:
