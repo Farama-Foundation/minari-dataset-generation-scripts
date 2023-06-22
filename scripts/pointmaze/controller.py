@@ -50,7 +50,6 @@ class WaypointController:
 
 
         action = self.gains['p'] * (self.current_control_target_xy - obs['achieved_goal']) + self.gains['d'] * obs['observation'][2:]
-        action = np.clip(action, -1, 1)
         
         return action
    

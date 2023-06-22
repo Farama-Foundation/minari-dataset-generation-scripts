@@ -64,10 +64,11 @@ if __name__ == "__main__":
 
     waypoint_controller = WaypointController(maze=env.maze)
 
-    for n_step in range(int(50000)):
+    for n_step in range(1_000_000):
         action = waypoint_controller.compute_action(obs)
         # Add some noise to each step action
         action += np.random.randn(*action.shape)*0.5
+        action = np.clip(action, -1, 1)
 
         obs, rew, terminated, truncated, info = collector_env.step(action)
 
