@@ -89,7 +89,6 @@ class GoalReachAnt(GoalEnv, EzPickle):
         EzPickle.__init__(
             self,
             render_mode,
-            reward_type,
             continuing_task,
             **kwargs,
         )

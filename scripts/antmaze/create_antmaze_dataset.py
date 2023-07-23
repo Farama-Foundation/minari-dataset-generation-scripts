@@ -75,7 +75,7 @@ def init_dataset(collector_env, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--env", type=str, default="AntMaze_UMaze-v3",
+    parser.add_argument("--env", type=str, default="AntMaze_UMaze-v4",
                         help="environment id to collect data from")
     parser.add_argument("--maze-solver", type=str, default="QIteration",
                         help="algorithm to solve the maze and generate waypoints, can be DFS or QIteration")
