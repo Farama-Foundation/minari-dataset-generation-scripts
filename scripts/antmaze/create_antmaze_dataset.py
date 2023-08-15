@@ -54,11 +54,7 @@ def wrap_maze_obs(obs, waypoint_xy):
     """Wrap the maze obs into one suitable for GoalReachAnt."""
     goal_direction = waypoint_xy - obs["achieved_goal"]
     observation = np.concatenate([obs["observation"], goal_direction])
-    return {
-        "observation": observation,
-        "achieved_goal": obs["achieved_goal"].copy(),
-        "desired_goal": waypoint_xy.copy(),
-    }
+    return observation
 
 
 def init_dataset(collector_env, args):
@@ -75,7 +71,7 @@ def init_dataset(collector_env, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--env", type=str, default="AntMaze_UMaze-v4",
+    parser.add_argument("--env", type=str, default="AntMaze_U-v4",
                         help="environment id to collect data from")
     parser.add_argument("--maze-solver", type=str, default="QIteration",
                         help="algorithm to solve the maze and generate waypoints, can be DFS or QIteration")
@@ -113,7 +109,7 @@ if __name__ == "__main__":
     # it will generate a new target. For this reason we set the maximum episode steps to
     # the desired size of our Minari dataset (evade truncation due to time limit)
     env = gym.make(
-        args.env, continuing_task=True, max_episode_steps=args.total_timesteps
+        args.env, continuing_task=True, max_episode_steps=args.total_timesteps, render_mode='human'
     )
 
     # Data collector wrapper to save temporary data while stepping. Characteristics:
