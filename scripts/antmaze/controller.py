@@ -39,6 +39,7 @@ class WaypointController:
             self.global_target_id = tuple(
                 self.maze.cell_xy_to_rowcol(obs["desired_goal"])
             )
+            
             self.global_target_xy = obs["desired_goal"]
 
             self.waypoint_targets = self.maze_solver.generate_path(
@@ -50,14 +51,18 @@ class WaypointController:
                 self.current_control_target_id = self.waypoint_targets[
                     achived_goal_cell
                 ]
-                self.current_control_target_xy = self.maze.cell_rowcol_to_xy(
-                    np.array(self.current_control_target_id)
-                )
+                # If target is global goal go directly to goal position
+                if self.current_control_target_id == self.global_target_id:
+                    self.current_control_target_xy = obs['desired_goal']
+                else:
+                    self.current_control_target_xy = self.maze.cell_rowcol_to_xy(
+                        np.array(self.current_control_target_id)
+                    ) - np.random.uniform(size=(2,)) * 0.1
             else:
                 self.waypoint_targets[
                     self.current_control_target_id
                 ] = self.current_control_target_id
-                self.current_control_target_id == self.global_target_id
+                self.current_control_target_id = self.global_target_id
                 self.current_control_target_xy = self.global_target_xy
 
         # Check if we need to go to the next waypoint
@@ -71,14 +76,14 @@ class WaypointController:
             ]
             # If target is global goal go directly to goal position
             if self.current_control_target_id == self.global_target_id:
-                self.current_control_target_xy = self.global_target_xy
+
+                self.current_control_target_xy = obs['desired_goal']
             else:
                 self.current_control_target_xy = (
                     self.maze.cell_rowcol_to_xy(
                         np.array(self.current_control_target_id)
                     )
-                    - np.random.uniform(size=(2,)) * 0.2
-                )
-
+                    - np.random.uniform(size=(2,)) * 0.1
+                )  
         action = self.model_callback(obs, self.current_control_target_xy)
         return action

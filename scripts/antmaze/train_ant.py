@@ -13,6 +13,7 @@ import glob
 import os
 
 import gymnasium as gym
+from gymnasium.wrappers import RecordVideo
 import torch.nn as nn
 import wandb
 from gymnasium.envs.registration import register
@@ -28,7 +29,7 @@ checkpoint_dir = "./logs/GoalAnt"
 checkpoint_filename = f"{project_name}_model"
 
 config = {
-    "policy_type": "MultiInputPolicy",
+    "policy_type": "MlpPolicy",
     "total_timesteps": 30_000_000,
     "env_id": "GoalReachAnt-v0",
     "goal_threshold": 0.2,
@@ -51,7 +52,7 @@ config = {
         "tau": 0.03,
         "train_freq": 1,
         "use_sde": False,
-        "action_noise": NormalActionNoise(mean=[0.0], sigma=[0.1]),
+        "action_noise": NormalActionNoise(mean=[0.0], sigma=[0.3]),
     },
 }
 
@@ -62,7 +63,7 @@ def latest_glob(directory, glob_str):
     return max(filenames, key=os.path.getctime)
 
 
-def make_env():
+def make_env(run_name:str):
     """Wrapper to create the appropriate environment."""
     env = gym.make(
         config["env_id"],
@@ -70,6 +71,7 @@ def make_env():
         forward_reward_scale=config["forward_reward_scale"],
         goal_threshold=config["goal_threshold"],
     )
+    env = RecordVideo(env, f"videos/{run_name}")
     env = Monitor(env)
     return env
 
@@ -88,9 +90,12 @@ if __name__ == "__main__":
         max_episode_steps=config["max_episode_steps"],
     )
 
+    run_name = "ant-goal-reach"
+
     # Set up WandB run
     run = wandb.init(
         project=project_name,
+        name=run_name,
         config=config,
         sync_tensorboard=True,
         monitor_gym=True,
@@ -98,8 +103,8 @@ if __name__ == "__main__":
         resume="must" if args.resume != "" else False,
         id=args.resume if args.resume != "" else None,
     )
-
-    env = make_vec_env(make_env, n_envs=config["n_envs"])
+    
+    env = make_vec_env(make_env, n_envs=config["n_envs"], env_kwargs={"run_name": run_name})
 
     # Support resuming prematurely stopped runs with --resume <wandb run id>
     if wandb.run.resumed:

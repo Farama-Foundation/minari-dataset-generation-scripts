@@ -1,4 +1,4 @@
-from gymnasium_robotics import GoalEnv
+import gymnasium as gym
 from gymnasium_robotics.utils.mujoco_utils import MujocoModelNames
 from gymnasium import spaces
 
@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Union
 from os import path
 
 
-class GoalReachAnt(GoalEnv, EzPickle):
+class GoalReachAnt(gym.Env, EzPickle):
     metadata = {
         "render_modes": [
             "human",
@@ -29,7 +29,7 @@ class GoalReachAnt(GoalEnv, EzPickle):
         render_mode: Optional[str] = None,
         continuing_task: bool = True,
         goal_region_radius: float = 10.,
-        goal_threshold: float = 0.45,
+        goal_threshold: float = 0.30,
         forward_reward_scale: float = 10.,
         **kwargs,
     ):
@@ -66,7 +66,7 @@ class GoalReachAnt(GoalEnv, EzPickle):
             xml_file=temp_xml_path,
             exclude_current_positions_from_observation=False,
             render_mode=render_mode,
-            reset_noise_scale=0.0,
+            reset_noise_scale=0.15,
             **kwargs,
         )
         
@@ -74,15 +74,9 @@ class GoalReachAnt(GoalEnv, EzPickle):
         self.target_site_id = self._model_names.site_name2id["target"]
         self.action_space = self.ant_env.action_space
         obs_shape: tuple = self.ant_env.observation_space.shape
-        self.observation_space = spaces.Dict(
-            dict(
-                observation=spaces.Box(
+        self.observation_space =spaces.Box(
                     -np.inf, np.inf, shape=(obs_shape[0],), dtype="float64"
-                ),
-                achieved_goal=spaces.Box(-np.inf, np.inf, shape=(2,), dtype="float64"),
-                desired_goal=spaces.Box(-np.inf, np.inf, shape=(2,), dtype="float64"),
-            )
-        )
+                )
 
         self.render_mode = render_mode
 
@@ -98,38 +92,34 @@ class GoalReachAnt(GoalEnv, EzPickle):
         self.goal = self._generate_goal()
         self.ant_env.model.site_pos[self.target_site_id] = np.append(self.goal, 0.75)
         obs, info = self.ant_env.reset(seed=seed)
-        obs_dict = self._get_obs(obs)
+        obs_dict, _ = self._get_obs(obs)
 
         return obs_dict, info
     
     def step(self, action):
         ant_obs, _, _, _, info = self.ant_env.step(action)
-        obs = self._get_obs(ant_obs)
+        obs, achieved_goal = self._get_obs(ant_obs)
 
-        terminated = self.compute_terminated(obs["achieved_goal"], self.goal, info)
-        truncated = self.compute_truncated(obs["achieved_goal"], self.goal, info)
-        reward = self.compute_reward(obs["achieved_goal"], self.goal, info)
+        terminated = self.compute_terminated(achieved_goal, self.goal, info)
+        truncated = self.compute_truncated(achieved_goal, self.goal, info)
+        reward = self.compute_reward(achieved_goal, self.goal, info)
         
         # Create a new goal, if necessary, and update the observation
-        if self.continuing_task and self._within_goal_threshold(obs["achieved_goal"], self.goal):
+        if self.continuing_task and self._within_goal_threshold(achieved_goal, self.goal):
             self.goal = self._generate_goal()
             self.ant_env.model.site_pos[self.target_site_id] = np.append(self.goal, 0.75)
-            obs = self._get_obs(ant_obs)
+            obs, _  = self._get_obs(ant_obs)
 
         if self.render_mode == "human":
             self.render()
 
         return obs, reward, terminated, truncated, info
 
-    def _get_obs(self, ant_obs: np.ndarray) -> Dict[str, np.ndarray]:
+    def _get_obs(self, ant_obs: np.ndarray):
         achieved_goal = ant_obs[:2]
         goal_direction = self.goal - achieved_goal
         observation = np.concatenate([ant_obs[2:], goal_direction])
-        return {
-            "observation": observation,
-            "achieved_goal": achieved_goal.copy(),
-            "desired_goal": self.goal.copy(),
-        }
+        return observation, achieved_goal
 
     def _generate_goal(self):
         th = 2 * np.pi * self.np_random.uniform()
