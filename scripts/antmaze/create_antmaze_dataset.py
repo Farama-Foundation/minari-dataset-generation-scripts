@@ -109,7 +109,7 @@ if __name__ == "__main__":
     # it will generate a new target. For this reason we set the maximum episode steps to
     # the desired size of our Minari dataset (evade truncation due to time limit)
     env = gym.make(
-        args.env, continuing_task=True, max_episode_steps=args.total_timesteps, render_mode='human'
+        args.env, continuing_task=True, max_episode_steps=args.total_timesteps
     )
 
     # Data collector wrapper to save temporary data while stepping. Characteristics:
