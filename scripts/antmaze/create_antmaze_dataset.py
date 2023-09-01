@@ -18,7 +18,8 @@ import argparse
 
 from stable_baselines3 import SAC
 from controller import WaypointController
-
+R= "r"
+G="g"
 
 class AntMazeStepDataCallback(StepDataCallback):
     """Add environment state information to 'infos'.
@@ -68,6 +69,29 @@ def init_dataset(collector_env, args):
         author_email=args.author_email,
     )
 
+EVAL_ENVS = {"umaze": [[1, 1, 1, 1, 1],
+              [1, R, 0, 0, 1],
+              [1, 1, 1, 0, 1],
+              [1, G, 0, 0, 1],
+              [1, 1, 1, 1, 1]], 
+            "medium": [[1, 1, 1, 1, 1, 1, 1, 1],
+                [1, R, 0, 1, 1, 0, 0, 1],
+                [1, 0, 0, 1, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 1, 1, 1],
+                [1, 0, 0, 1, 0, 0, 0, 1],
+                [1, 0, 1, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 1, 0, G, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1]],
+            "large": [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [1, R, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+                    [1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1],
+                    [1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1],
+                    [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1],
+                    [1, 0, 0, 1, 0, 0, 0, 1, 0, G, 0, 1],
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+                }
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
