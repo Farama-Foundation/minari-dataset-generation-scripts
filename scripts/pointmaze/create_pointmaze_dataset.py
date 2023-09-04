@@ -89,7 +89,7 @@ if __name__ == "__main__":
         # continuing task => the episode doesn't terminate or truncate when reaching a goal
         # it will generate a new target. For this reason we set the maximum episode steps to
         # the desired size of our Minari dataset (evade truncation due to time limit)
-        env = gym.make(env_id, continuing_task=True, max_episode_steps=1e6)
+        env = gym.make(env_id, continuing_task=True, reset_target=True, max_episode_steps=1e6)
         
         # Data collector wrapper to save temporary data while stepping. Characteristics:
         #   * Custom StepDataCallback to add extra state information to 'infos' and divide dataset in different episodes by overridng 
@@ -112,18 +112,22 @@ if __name__ == "__main__":
 
             if (n_step + 1) % 10000 == 0:
                 if dataset is None:
-                    eval_env_spec = deepcopy(env.spec)
-                    eval_env_spec.kwargs['maze_map'] = EVAL_ENV_MAPS[split_dataset_id[1]]
-                    eval_env_spec.kwargs['reset_target'] = False
-                    eval_env = gym.make(eval_env_spec)
+                    eval_env_id = env.spec.id
+                    eval_env = gym.make(eval_env_id, maze_map=EVAL_ENV_MAPS[split_dataset_id[1]],
+                                        continuing_task=True,
+                                        reset_target=False)
                     eval_waypoint_controller = WaypointController(eval_env.maze)
                     dataset = minari.create_dataset_from_collector_env(collector_env=collector_env, 
-                                                                       dataset_id=dataset_id,  
+                                                                       dataset_id=dataset_id,
+                                                                       eval_env=eval_env,
+                                                                       expert_policy=eval_waypoint_controller.compute_action,
                                                                        algorithm_name=args.maze_solver, 
                                                                        code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", 
                                                                        author=args.author, 
                                                                        author_email=args.author_email
                                                                        )
+
+                    eval_env.close()
                 else:
                     # Update local Minari dataset every 200000 steps.
                     # This works as a checkpoint to not lose the already collected data
