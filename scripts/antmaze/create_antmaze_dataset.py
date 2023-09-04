@@ -150,11 +150,11 @@ if __name__ == "__main__":
                         [1, R, 0, 0, 1],
                         [1, 1, 1, 1, 1]]
             env = gym.make(
-                env_id, maze_map=maze_map, continuing_task=True, reset_target=True,
+                env_id, maze_map=maze_map, continuing_task=True, reset_target=False, render_mode='human'
             )
         else:
             env = gym.make(
-                env_id, continuing_task=True, reset_target=True
+                env_id, continuing_task=True, reset_target=False, render_mode='human'
             )
         # Data collector wrapper to save temporary data while stepping. Characteristics:
         #   * Custom StepDataCallback to add extra state information to 'infos' and divide dataset in
