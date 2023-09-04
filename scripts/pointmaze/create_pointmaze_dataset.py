@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
             obs, rew, terminated, truncated, info = collector_env.step(action)
 
-            if (n_step + 1) % 10000 == 0:
+            if (n_step + 1) % 200000 == 0:
                 if dataset is None:
                     eval_env_id = env.spec.id
                     eval_env = gym.make(eval_env_id, maze_map=EVAL_ENV_MAPS[split_dataset_id[1]],
