@@ -150,11 +150,11 @@ if __name__ == "__main__":
                         [1, R, 0, 0, 1],
                         [1, 1, 1, 1, 1]]
             env = gym.make(
-                env_id, maze_map=maze_map, continuing_task=True, reset_target=False, render_mode='human'
+                env_id, maze_map=maze_map, continuing_task=True, reset_target=False,
             )
         else:
             env = gym.make(
-                env_id, continuing_task=True, reset_target=False, render_mode='human'
+                env_id, continuing_task=True, reset_target=False,
             )
         # Data collector wrapper to save temporary data while stepping. Characteristics:
         #   * Custom StepDataCallback to add extra state information to 'infos' and divide dataset in
@@ -179,7 +179,6 @@ if __name__ == "__main__":
 
         for step in tqdm(range(args.total_timesteps)):
             reset = False
-            steps_since_ckpt += 1
 
             # Compute action and add some noise
             action = waypoint_controller.compute_action(obs)
@@ -188,9 +187,7 @@ if __name__ == "__main__":
 
             obs, _, _, truncated, info = collector_env.step(action)
 
-            if steps_since_ckpt >= args.checkpoint_interval and truncated:
-                steps_since_ckpt = 0
-
+            if (step + 1) % args.checkpoint_interval == 0:
                 if dataset is None:
                     eval_env_spec = deepcopy(env.spec)
                     eval_env_spec.kwargs['maze_map'] = EVAL_ENV_MAPS[split_dataset_id[1]]
@@ -206,8 +203,6 @@ if __name__ == "__main__":
             if truncated:
                 seed += 1  # Increment the seed to prevent repeating old episodes
                 obs, info = collector_env.reset(seed=seed)
- 
-        dataset.update_dataset_from_collector_env(collector_env
-                                                              )
+        
         if args.upload_dataset:
             minari.upload_dataset(dataset_id, args.path_to_private_key)
