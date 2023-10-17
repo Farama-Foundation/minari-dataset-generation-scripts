@@ -6,7 +6,7 @@ import numpy as np
 from minari import DataCollectorV0, StepDataCallback
 from stable_baselines3 import A2C, PPO, SAC, TD3
 import stable_baselines3
-assert stable-baselines3.__version__ == "2.0.0a5"
+assert stable_baselines3.__version__ == "2.0.0a5"
 
 
 
