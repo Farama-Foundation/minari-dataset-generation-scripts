@@ -27,7 +27,7 @@ class AddExcludedObservationElements(StepDataCallback):
 
         return step_data
 
-dataset_name = "Ant-v5-6_7k_return-v0"
+dataset_name = "ant-v5-expert-v0"
 dataset = None
 
 # Check if dataset already exist
