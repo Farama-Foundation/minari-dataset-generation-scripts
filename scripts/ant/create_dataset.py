@@ -60,19 +60,19 @@ for n_step in range(NUM_STEPS):
     # Checkpoint
     if (n_step + 1) % 200e3 == 0:
         print(f"STEPS RECORDED: {n_step}")
-        if dataset is None:
-            dataset = minari.create_dataset_from_collector_env(
-                collector_env=collector_env,
-                dataset_id=dataset_name,
-                algorithm_name="SB3/SAC",
-                code_permalink="https://github.com/Kallinteris-Andreas/gymnasium-mujuco-v5-envs-validation/blob/main/create_dataset.py",
-                author="Kallinteris Andreas",
-                author_email="kallinteris@protonmail.com",
-            )
-        dataset.update_dataset_from_collector_env(collector_env)
+        #if dataset is None:
+        #dataset.update_dataset_from_collector_env(collector_env)
 
     if terminated or truncated:
         env.reset()
 
 # dataset.update_dataset_from_collector_env(collector_env)
+dataset = minari.create_dataset_from_collector_env(
+    collector_env=collector_env,
+    dataset_id=dataset_name,
+    algorithm_name="SB3/SAC",
+    code_permalink="https://github.com/Kallinteris-Andreas/gymnasium-mujuco-v5-envs-validation/blob/main/create_dataset.py",
+    author="Kallinteris Andreas",
+    author_email="kallinteris@protonmail.com",
+)
 collector_env.save_to_disk("test.hdf5")
