@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description="Convert MiniGrid datasets")
 parser.add_argument("--random", action='store_true', default=False, help="Whether to generate the random dataset")
 
 
-def convert_dataaset(args):
+def convert_dataset(args):
     dataset_name = f"minigrid-fourrooms{'-random' if args.random else ''}-v0"
     data_env = gym_legacy.make(dataset_name)
     dataset = data_env.get_dataset()
@@ -60,10 +60,11 @@ def convert_dataaset(args):
         author="Omar G. Younis",
         author_email="omar.g.younis@gmail.com",
         minari_version=">=0.4.0",
+        code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
         ref_max_score=data_env.ref_max_score,
         ref_min_score=data_env.ref_min_score,
     )
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    convert_dataaset(args)
+    convert_dataset(args)
