@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
             env = make_vec_env(make_env, n_envs=n_envs, env_kwargs={"env_id": env_id, "run_name": run_name})
 
-            model = SAC("MlpPolicy", env, tensorboard_log=f"runs/{run.id}", learning_rate=0.00073, gamma=0.98, tau=0.02, train_freq=8, gradient_steps=8, learning_starts=10000, use_sde= True, policy_kwargs= dict(log_std_init=-3, net_arch=[400, 300]), seed=seed)
+            model = SAC("MlpPolicy", env, tensorboard_log=f"runs/{run.id}", learning_rate=0.00073, gamma=0.98, tau=0.02, train_freq=8, gradient_steps=8, learning_starts=10000, use_sde= True, policy_kwargs= dict(log_std_init=-3, net_arch=[400, 300]), seed=seed, buffer_size=300000)
             wandb_callback = WandbCallback(
                 gradient_save_freq=100, model_save_path=f"models/{run.id}"
             )
