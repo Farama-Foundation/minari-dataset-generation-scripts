@@ -77,7 +77,7 @@ if __name__ == "__main__":
             save_replay_buffer=True,
             )
 
-            model.learn(total_timesteps=1000000, callback=[wandb_callback, checkpoint_callback], log_interval=4)
+            model.learn(total_timesteps=3000000, callback=[wandb_callback, checkpoint_callback], log_interval=4)
             model.save(f"sac_{env_id}_expert")
             run.finish()
         
