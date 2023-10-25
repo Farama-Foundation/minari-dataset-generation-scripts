@@ -1,4 +1,4 @@
-__authors__ = ["Kallinteris Andreas"]
+__credits__ = ["Kallinteris Andreas"]
 import gymnasium as gym
 import minari
 assert minari.__version__ == "0.4.1"
@@ -12,7 +12,6 @@ assert stable_baselines3.__version__ == "2.0.0a5"
 
 SEED = 12345
 NUM_STEPS = int(10e6)
-POLICY_NOISE = 0.1
 
 class AddExcludedObservationElements(StepDataCallback):
     """Add Excluded observation elements like cfrc_ext to the observation space."""
@@ -52,16 +51,11 @@ model = SAC.load(
 
 for n_step in range(NUM_STEPS):
     action, _ = model.predict(obs, deterministic=True)
-    # Add some noise to each step action
-    action += np.random.randn(*action.shape) * POLICY_NOISE
-    action = action.clip(-1, 1)
 
     obs, rew, terminated, truncated, info = collector_env.step(action)
     # Checkpoint
     if (n_step + 1) % 200e3 == 0:
         print(f"STEPS RECORDED: {n_step}")
-        #if dataset is None:
-        #dataset.update_dataset_from_collector_env(collector_env)
 
     if terminated or truncated:
         env.reset()
@@ -75,4 +69,3 @@ dataset = minari.create_dataset_from_collector_env(
     author="Kallinteris Andreas",
     author_email="kallinteris@protonmail.com",
 )
-collector_env.save_to_disk("test.hdf5")
