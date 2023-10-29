@@ -33,7 +33,7 @@ dataset = None
 assert dataset_name not in minari.list_local_datasets()
 
 # Create Environment
-env = gym.make("Ant-v5", include_cfrc_ext_in_observation=False, max_episode_steps=1e9)
+env = gym.make("Ant-v5", include_cfrc_ext_in_observation=False, max_episode_steps=1e3)
 # add callback to add cfrc_ext to the obs space
 collector_env = DataCollectorV0(env, step_data_callback=AddExcludedObservationElements, record_infos=True)
 # we do not observe `cfrc_ext` with the agent, but we keep it in the dataset observations
