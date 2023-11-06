@@ -1,17 +1,19 @@
-from typing import Any, Dict, List, Union
 import numpy as np
-import torch as th
+from typing import Any, Dict, List
+
 import gymnasium as gym
-from gymnasium import spaces
 from gymnasium.wrappers import RecordVideo
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3 import SAC
+
 import wandb
 from wandb.integration.sb3 import WandbCallback
+
+from stable_baselines3 import SAC
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.buffers import ReplayBuffer
-from typing import List, Dict
+
+from huggingface_sb3 import package_to_hub
 
 
 INFO_KEYS = {
@@ -173,7 +175,10 @@ if __name__ == "__main__":
 
             env = make_vec_env(make_env, n_envs=n_envs, env_kwargs={"env_id": env_id, "run_name": run_name})
 
-            model = SAC("MlpPolicy", env, tensorboard_log=f"runs/{run.id}", learning_starts=10000, use_sde= False, seed=seed, replay_buffer_class=InfoReplayBuffer, replay_buffer_kwargs={"info_keys": INFO_KEYS[env_id]})
+            model = SAC("MlpPolicy", env, tensorboard_log=f"runs/{run.id}", learning_starts=10000, use_sde= False, seed=seed, 
+                        replay_buffer_class=InfoReplayBuffer, 
+                        replay_buffer_kwargs={"info_keys": INFO_KEYS[env_id]}
+                        )
             wandb_callback = WandbCallback()
             # Save a checkpoint every 100000 steps
             checkpoint_callback = CheckpointCallback(
@@ -184,6 +189,40 @@ if __name__ == "__main__":
             )
 
             model.learn(total_timesteps=3000000, callback=[wandb_callback, checkpoint_callback], log_interval=4)
-            model.save(f"sac_{env_id}_expert")
+            model.save(f"{env_id.lower()}-v5-sac-expert")
             run.finish()
+
+        eval_env = make_vec_env(f"{env_id}-v5", n_envs=1)
+
+        # Replace InfoReplayBuffer for sb3 ReplayBuffer
+        model = SAC.load(f"{env_id.lower()}-v5-sac-expert", 
+                        custom_objects={"replay_buffer_class": ReplayBuffer, 
+                                        "replay_buffer_kwargs": {},
+                                        "lr_schedule": lambda _: 0.0
+                                        }
+                                        )
+
+        package_to_hub(model=model, 
+                    model_name=f"{env_id.lower()}-v5-sac-expert",
+                    model_architecture="SAC",
+                    env_id=f"{env_id}-v5",
+                    eval_env=eval_env,
+                    repo_id=f"farama-minari/{env_id}-v5-SAC-expert",
+                    commit_message="model")
+        
+        # Replace InfoReplayBuffer for sb3 ReplayBuffer
+        model = SAC.load(f"logs/{env_id}/rl_model_200000_steps.zip", 
+                        custom_objects={"replay_buffer_class": ReplayBuffer, 
+                                        "replay_buffer_kwargs": {},
+                                        "lr_schedule": lambda _: 0.0
+                                        }
+                                        )
+
+        package_to_hub(model=model, 
+                    model_name=f"{env_id.lower()}-v5-sac-medium",
+                    model_architecture="SAC",
+                    env_id=f"{env_id}-v5",
+                    eval_env=eval_env,
+                    repo_id=f"farama-minari/{env_id}-v5-SAC-medium",
+                    commit_message="model")
         
