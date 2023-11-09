@@ -46,7 +46,8 @@ def generate_dataset(random):
         algorithm_name="RandomPolicy" if random else "ExpertPolicy",
         author="Omar G. Younis",
         author_email="omar.younis98@gmail.com",
-        minari_version=">=0.4.0"
+        minari_version=">=0.4.0",
+        code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
     )
 
 
