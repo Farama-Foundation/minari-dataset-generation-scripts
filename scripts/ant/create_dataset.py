@@ -62,7 +62,6 @@ for n_step in range(NUM_STEPS):
         env.reset()
 
 dataset = collector_env.create_dataset(
-    # collector_env=collector_env,
     dataset_id=DATASET_NAME,
     algorithm_name="SB3/SAC",
     code_permalink="https://github.com/Kallinteris-Andreas/gymnasium-mujuco-v5-envs-validation/blob/main/create_dataset.py",
