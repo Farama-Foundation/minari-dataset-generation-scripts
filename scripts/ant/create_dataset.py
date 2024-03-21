@@ -14,7 +14,6 @@ from gymnasium.wrappers import TransformReward, PassiveEnvChecker, OrderEnforcin
 SEED = 12345
 NUM_STEPS = int(2e6)
 
-
 class AddExcludedObservationElements(StepDataCallback):
     """Add Excluded observation elements like cfrc_ext to the observation space."""
     def __call__(self, env, **kwargs):
@@ -62,11 +61,12 @@ for n_step in range(NUM_STEPS):
     if terminated or truncated:
         env.reset()
 
-dataset = minari.create_dataset(
-    collector_env=collector_env,
+dataset = collector_env.create_dataset(
+    # collector_env=collector_env,
     dataset_id=DATASET_NAME,
     algorithm_name="SB3/SAC",
     code_permalink="https://github.com/Kallinteris-Andreas/gymnasium-mujuco-v5-envs-validation/blob/main/create_dataset.py",
     author="Kallinteris Andreas",
     author_email="kallinteris@protonmail.com",
+    # env_spec
 )
