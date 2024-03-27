@@ -130,6 +130,26 @@ def check_episode_shapes(dataset):
             _check_shape(i, key, getattr(ep, key), inner_shape, outer_dim)
 
 
+def check_infos_consistency(dataset):
+    """Check that all infos dicts have consistent keys and shapes."""
+    first_ep = next(iter(dataset))
+    info_shapes = {k: v.shape[1:] for k, v in first_ep.infos.items()}
+
+    for i, ep in enumerate(dataset):
+        num_steps = ep.total_timesteps
+        infos = ep.infos
+
+        assert (
+            infos.keys() == info_shapes.keys()
+        ), f"episode[{i}] and episode[0] don't have the same info keys"
+
+        for k, v in infos.items():
+            expected_shape = (num_steps + 1, *info_shapes[k])
+            assert (
+                v.shape == expected_shape
+            ), f"episode[{i}].infos['{k}'] has shape {v.shape}, expected {expected_shape}"
+
+
 def run_all_checks(dataset, verbose=True, check_identical_values=True):
     """Run all of the standard Minari checks and print results."""
     passed = True
@@ -150,7 +170,11 @@ def run_all_checks(dataset, verbose=True, check_identical_values=True):
     return passed
 
 
-check_fns_no_identical = [print_avg_returns, check_episode_shapes]
+check_fns_no_identical = [
+    print_avg_returns,
+    check_episode_shapes,
+    check_infos_consistency,
+]
 check_fns = check_fns_no_identical + [check_identical_values]
 
 
