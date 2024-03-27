@@ -96,10 +96,10 @@ EVAL_ENV_MAPS = {"umaze": [[1, 1, 1, 1, 1],
 
 DATASET_ID_TO_ENV_ID = {"antmaze-umaze-v1": "AntMaze_UMaze-v4",
                         "antmaze-umaze-diverse-v1": "AntMaze_UMaze-v4",
-                        "antmaze-medium-play-v0": "AntMaze_Medium-v4", 
-                        "antmaze-medium-diverse-v0": "AntMaze_Medium_Diverse_GR-v4",
-                        "antmaze-large-diverse-v0": "AntMaze_Large_Diverse_GR-v4",
-                        "antmaze-large-play-v0": "AntMaze_Large-v4"}
+                        "antmaze-medium-play-v1": "AntMaze_Medium-v4",
+                        "antmaze-medium-diverse-v1": "AntMaze_Medium_Diverse_GR-v4",
+                        "antmaze-large-diverse-v1": "AntMaze_Large_Diverse_GR-v4",
+                        "antmaze-large-play-v1": "AntMaze_Large-v4"}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -117,7 +117,7 @@ if __name__ == "__main__":
                         help="number of steps to collect before caching to disk")
     parser.add_argument("--author", type=str, default="Alex Davey",
                         help="name of the author of the dataset")
-    parser.add_argument("--author-email", type=str, default="amd1g13@soton.ac.uk",
+    parser.add_argument("--author-email", type=str, default="alexdavey0@gmail.com",
                         help="email of the author of the dataset")
     parser.add_argument("--upload-dataset", type=bool, default=False,
                         help="upload dataset to Farama server after collecting the data")
