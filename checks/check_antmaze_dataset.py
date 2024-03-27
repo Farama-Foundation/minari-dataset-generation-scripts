@@ -6,28 +6,29 @@ Usage:
 python check_antmaze_dataset.py <dataset_id>
 """
 
-import numpy as np
 import argparse
+
 import minari
+import numpy as np
 import scipy
 
 import check_dataset
 
 
 def check_antmaze_reset_nonterminal(dataset, reset_threshold=0.5):
-    """Check if a reset (a jump in position) occured on a non-terminal state."""
+    """Check if a reset (a jump in position) occurred on a non-terminal state."""
     for i, ep in enumerate(dataset):
         # Compute the distance between the x, y positions at successive
         # timesteps. The x, y coordinates are the [0, 1] indices.
         # See https://robotics.farama.org/envs/maze/ant_maze/
-        positions = ep.observations[:-1, 0:1]
-        next_positions = ep.observations[1:, 0:1]
+        positions = ep.observations["achieved_goal"][:-1, 0:1]
+        next_positions = ep.observations["achieved_goal"][1:, 0:1]
         diff = np.linalg.norm(positions - next_positions, axis=1)
 
         assert np.all(diff <= reset_threshold), f"Non-terminal reset in episode {i}."
 
 
-def check_qpos_pvel_identical_values(dataset):
+def check_qpos_qvel_identical_values(dataset):
     """Check infos/qpos and infos/qvel do not have identical values."""
     qpos = check_dataset.get_infos(dataset, "qpos")
     qvel = check_dataset.get_infos(dataset, "qvel")
@@ -94,7 +95,7 @@ def check_qpos_qvel_shapes(dataset):
 
 antmaze_check_functions = [
     check_antmaze_reset_nonterminal,
-    check_qpos_pvel_identical_values,
+    check_qpos_qvel_identical_values,
     check_qpos_qvel_shapes,
 ]
 

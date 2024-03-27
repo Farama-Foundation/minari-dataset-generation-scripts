@@ -6,17 +6,18 @@ Usage:
 python check_dataset.py <dataset_id>
 """
 
-import numpy as np
-import scipy
 import argparse
 
 import minari
+import numpy as np
+import scipy
 from gymnasium import spaces
+from minigrid.core.mission import MissionSpace
 
 
 def get_infos(dataset, key):
-    """Get a numpy array of infos/key, for all episodes."""
-    return dataset._data.apply(lambda ep: ep["infos"][key][()])
+    """Get a list of the infos[key] for each episode."""
+    return list(dataset._data.apply(lambda ep: ep["infos"][key][()]))
 
 
 def print_avg_returns(dataset):
@@ -35,50 +36,68 @@ def print_avg_returns(dataset):
     print("  | Num terminations:", num_terminations)
 
 
-def check_identical_values(dataset, check_keys=["actions", "observations"]):
+def _check_identical(i, key, values, ignore_keys):
+    if isinstance(values, dict):
+        for k, v in values.items():
+            if k not in ignore_keys:
+                _check_identical(i, f"{key}['{k}']", v, ignore_keys)
+    else:
+        assert isinstance(values, np.ndarray)
+
+        if len(values) < 3:
+            return
+
+        values_0 = values[0]
+        values_mid = values[values.shape[0] // 2]
+        values_last = values[-1]
+
+        test_values = np.c_[values_0, values_mid, values_last].T
+        dists = scipy.spatial.distance.pdist(test_values)
+        not_same = dists > 0
+
+        message = (
+            f"Some of first/mid/last values of ep[{i}].{key} "
+            f"(length {len(values)}) are identical:\n{test_values}"
+        )
+        assert np.all(not_same), message
+
+
+def check_identical_values(
+    dataset, check_keys=["actions", "observations"], ignore_keys=["desired_goal"]
+):
     """Check that values of actions/observations in episodes are not identical."""
     for i, episode in enumerate(dataset):
         for key in check_keys:
-            values = getattr(episode, key)
-
-            if len(values) < 3:
-                continue
-
-            values_0 = values[0]
-            values_mid = values[values.shape[0] // 2]
-            values_last = values[-1]
-
-            test_values = np.c_[values_0, values_mid, values_last].T
-            dists = scipy.spatial.distance.pdist(test_values)
-            not_same = dists > 0
-
-            message = (
-                f"Some of first/mid/last values of ep[{i}].{key} "
-                f"(length {len(values)}) are identical:\n{test_values}"
-            )
-            assert np.all(not_same), message
+            _check_identical(i, key, getattr(episode, key), ignore_keys)
 
 
-def get_obs_act_shape(dataset):
-    """Compute obs/act space shape, taking into account flattening."""
-    env = dataset.recover_environment()
-    action_space_shape = env.action_space.shape
-
-    obs_space = env.observation_space
-    act_space = env.action_space
-
-    # Flatten the observation and action space shapes if they are Dicts or Tuples
-    if isinstance(obs_space, (spaces.Dict, spaces.Tuple)):
-        obs_shape = spaces.flatten_space(obs_space).shape
+def _check_shape(i, key, value, inner_space, outer_dim_size):
+    # If it's a Dict or Tuple, recurse and check all values have the correct shape
+    if isinstance(inner_space, spaces.Dict):
+        assert isinstance(value, dict)
+        for k, v in value.items():
+            _check_shape(i, f"{key}['{k}']", v, inner_space[k], outer_dim_size)
+    elif isinstance(inner_space, spaces.Tuple):
+        assert isinstance(value, tuple)
+        for i, x in enumerate(value):
+            _check_shape(i, f"{key}[{i}]", x, inner_space[i], outer_dim_size)
+    elif isinstance(inner_space, MissionSpace):
+        # MissionSpaces do not have a shape -- check they are one-dimensional lists
+        assert isinstance(value, list)
+        _check_shape(i, key, np.array(value), None, outer_dim_size)
     else:
-        obs_shape = obs_space.shape
+        assert isinstance(value, np.ndarray), f"episode[{i}].{key} is not np.ndarray"
 
-    if isinstance(act_space, (spaces.Dict, spaces.Tuple)):
-        act_shape = spaces.flatten_space(act_space).shape
-    else:
-        act_shape = act_space.shape
+        if inner_space is None:
+            inner_space = (outer_dim_size,)
+        else:
+            inner_space = (outer_dim_size, *inner_space.shape)
 
-    return obs_shape, act_shape
+        shape_message = (
+            f"Expected episode[{i}].{key} to have shape "
+            f"{inner_space}, got {value.shape}"
+        )
+        assert value.shape == inner_space, shape_message
 
 
 def check_episode_shapes(dataset):
@@ -90,45 +109,34 @@ def check_episode_shapes(dataset):
       - rewards:      (num_steps)
       - terminations: (num_steps)
       - truncations:  (num_steps)
-    NOTE: We have squeezed the latter 3 shapes which were (num_steps, 1)
-          in the documentation.
+    The actions and observations are possibly nested e.g. in a dict, so we check
+    that the innermost shapes match.
     """
-    check_keys = ["actions", "observations", "rewards", "terminations", "truncations"]
-
-    obs_shape, act_shape = get_obs_act_shape(dataset)
-
     # Check episodes
     for i, ep in enumerate(dataset):
         num_steps = ep.total_timesteps
-
-        # Check that all keys are numpy arrays
-        for key in check_keys:
-            nd_array_message = f"ep[{i}].{key} is not np.ndarray"
-            assert isinstance(getattr(ep, key), np.ndarray), nd_array_message
+        env = dataset.recover_environment()
 
         # Check each key has the correct shape
         target_shapes = {
-            "actions": (num_steps, *act_shape),
-            "observations": (num_steps + 1, *obs_shape),
-            "rewards": (num_steps,),
-            "terminations": (num_steps,),
-            "truncations": (num_steps,),
+            "actions": (num_steps, env.action_space),
+            "observations": (num_steps + 1, env.observation_space),
+            "rewards": (num_steps, None),
+            "terminations": (num_steps, None),
+            "truncations": (num_steps, None),
         }
 
-        for key, target_shape in target_shapes.items():
-            actual_shape = getattr(ep, key).shape
-            shape_message = (
-                f"Expected episode[{i}].{key} to have shape "
-                f"{target_shape}, got {actual_shape}"
-            )
-            assert actual_shape == target_shape, shape_message
+        for key, (outer_dim, inner_shape) in target_shapes.items():
+            _check_shape(i, key, getattr(ep, key), inner_shape, outer_dim)
 
 
-def run_all_checks(dataset, verbose=True):
+def run_all_checks(dataset, verbose=True, check_identical_values=True):
     """Run all of the standard Minari checks and print results."""
     passed = True
 
-    for check_fn in check_functions:
+    to_check = check_fns if check_identical_values else check_fns_no_identical
+
+    for check_fn in to_check:
         try:
             check_fn(dataset)
         except AssertionError as err:
@@ -142,19 +150,25 @@ def run_all_checks(dataset, verbose=True):
     return passed
 
 
-check_functions = [print_avg_returns, check_identical_values, check_episode_shapes]
+check_fns_no_identical = [print_avg_returns, check_episode_shapes]
+check_fns = check_fns_no_identical + [check_identical_values]
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "dataset_name", type=str, help="name of minari AntMaze dataset to check"
+        "dataset_name", type=str, help="name of minari dataset to check"
+    )
+    parser.add_argument(
+        "--ignore-identical",
+        action="store_true",
+        help="don't check for identical dataset values",
     )
     args = parser.parse_args()
 
     dataset = minari.load_dataset(args.dataset_name)
 
-    print("Checking:", args.dataset_name)
-    passed = run_all_checks(dataset)
+    print("\nChecking:", args.dataset_name)
+    passed = run_all_checks(dataset, check_identical_values=not args.ignore_identical)
 
     print("All tests passed" if passed else "Tests FAILED")
