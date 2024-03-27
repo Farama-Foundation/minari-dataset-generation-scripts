@@ -1,4 +1,5 @@
 gymnasium-robotics
+minigrid
 minari
 tqdm
 
