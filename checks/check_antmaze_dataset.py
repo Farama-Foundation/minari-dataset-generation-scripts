@@ -15,6 +15,22 @@ import scipy
 import check_dataset
 
 
+def print_antmaze_stats(dataset):
+    """Print antmaze-specific stats for manual sanity checking."""
+    successes = 0
+    velocity_sum = 0.0
+
+    for ep in dataset:
+        if np.any(ep.rewards >= 1.0):
+            successes += 1
+
+        coords = ep.observations["achieved_goal"]
+        velocity_sum += np.linalg.norm(coords[1:] - coords[:-1], axis=1).sum()
+
+    print("  | Success rate:", successes / dataset.total_episodes)
+    print("  | Avg velocity:", velocity_sum / dataset.total_steps)
+
+
 def check_antmaze_reset_nonterminal(dataset, reset_threshold=0.5):
     """Check if a reset (a jump in position) occurred on a non-terminal state."""
     for i, ep in enumerate(dataset):
@@ -94,6 +110,7 @@ def check_qpos_qvel_shapes(dataset):
 
 
 antmaze_check_functions = [
+    print_antmaze_stats,
     check_antmaze_reset_nonterminal,
     check_qpos_qvel_identical_values,
     check_qpos_qvel_shapes,
