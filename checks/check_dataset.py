@@ -88,16 +88,17 @@ def _check_shape(i, key, value, inner_space, outer_dim_size):
     else:
         assert isinstance(value, np.ndarray), f"episode[{i}].{key} is not np.ndarray"
 
-        if inner_space is None:
-            inner_space = (outer_dim_size,)
+        if inner_space is None or isinstance(inner_space, spaces.Discrete):
+            expected_shape = (outer_dim_size,)
         else:
-            inner_space = (outer_dim_size, *inner_space.shape)
+            assert inner_space.shape is not None
+            expected_shape = (outer_dim_size, *inner_space.shape)
 
         shape_message = (
             f"Expected episode[{i}].{key} to have shape "
-            f"{inner_space}, got {value.shape}"
+            f"{expected_shape}, got {value.shape}"
         )
-        assert value.shape == inner_space, shape_message
+        assert value.shape == expected_shape, shape_message
 
 
 def check_episode_shapes(dataset):
