@@ -151,11 +151,11 @@ def check_infos_consistency(dataset):
             ), f"episode[{i}].infos['{k}'] has shape {v.shape}, expected {expected_shape}"
 
 
-def run_all_checks(dataset, verbose=True, check_identical_values=True):
+def run_all_checks(dataset, verbose=True, check_identical=True):
     """Run all of the standard Minari checks and print results."""
     passed = True
 
-    to_check = check_fns if check_identical_values else check_fns_no_identical
+    to_check = check_fns if check_identical else check_fns_no_identical
 
     for check_fn in to_check:
         try:
@@ -194,6 +194,6 @@ if __name__ == "__main__":
     dataset = minari.load_dataset(args.dataset_name)
 
     print("\nChecking:", args.dataset_name)
-    passed = run_all_checks(dataset, check_identical_values=not args.ignore_identical)
+    passed = run_all_checks(dataset, check_identical=not args.ignore_identical)
 
     print("All tests passed" if passed else "Tests FAILED")

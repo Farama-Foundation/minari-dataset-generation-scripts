@@ -8,6 +8,8 @@ python create_antmaze_dataset.py
 See --help for full list of options.
 """
 
+import sys
+import os
 import gymnasium as gym
 import minari
 from minari import DataCollector, StepDataCallback
@@ -18,6 +20,9 @@ import argparse
 
 from stable_baselines3 import SAC
 from controller import WaypointController
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../checks")))
+from check_antmaze_dataset import run_antmaze_checks
 
 R = "r"
 G = "g"
@@ -169,6 +174,8 @@ if __name__ == "__main__":
         waypoint_controller = WaypointController(env.unwrapped.maze, action_callback)
         obs, info = collector_env.reset(seed=seed)
 
+        print(f"\nCreating {dataset_id}:")
+
         for step in tqdm(range(args.total_timesteps)):
             # Compute action and add some noise
             action = waypoint_controller.compute_action(obs)
@@ -194,6 +201,9 @@ if __name__ == "__main__":
             if truncated:
                 seed += 1  # Increment the seed to prevent repeating old episodes
                 obs, info = collector_env.reset(seed=seed)
+
+        print(f"Checking {dataset_id}:")
+        assert run_antmaze_checks(dataset)
 
         if args.upload_dataset:
             minari.upload_dataset(dataset_id, args.path_to_private_key)
