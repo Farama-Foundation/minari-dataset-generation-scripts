@@ -1,3 +1,5 @@
+import os
+import sys
 import argparse
 import gymnasium as gym
 import minigrid
@@ -8,6 +10,9 @@ import numpy as np
 np.random.seed(42)
 
 from policies import RandomPolicy, ExpertPolicy
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../checks")))
+from check_dataset import run_all_checks
 
 parser = argparse.ArgumentParser(description='Generate MiniGrid FourRooms datasets')
 parser.add_argument('--random', help='Whether to user random policy', action='store_true')
@@ -26,11 +31,13 @@ def generate_dataset(random):
 
     env = DataCollectorV0(env, record_infos=True, max_buffer_steps=1_000_000, observation_space=obs_space)
 
-    step_lower_bound = 10_000
+    step_lower_bound = 1_000_000 if random else 10_000
     step_id = 0
     while step_id < step_lower_bound:
         print("STEP", step_id)
-        env.reset(seed=np.random.randint(2**31 - 1))
+        seed = np.random.randint(2**31 - 1)
+        env.reset(seed=seed)
+        env.action_space.seed(seed)
         policy = RandomPolicy(env) if random else ExpertPolicy(env)
         done = False
         while not done:
@@ -39,9 +46,10 @@ def generate_dataset(random):
             obs, rew, terminated, truncated, info = env.step(action)
             done = terminated or truncated
 
+    dataset_id = f"minigrid-fourrooms{'-random' if random else ''}-v0"
 
-    minari.create_dataset_from_collector_env(
-        dataset_id=f"minigrid-fourrooms{'-random' if random else ''}-v0", 
+    dataset = minari.create_dataset_from_collector_env(
+        dataset_id=dataset_id,
         collector_env=env,
         algorithm_name="RandomPolicy" if random else "ExpertPolicy",
         author="Omar G. Younis",
@@ -49,6 +57,9 @@ def generate_dataset(random):
         minari_version=">=0.4.0",
         code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
     )
+
+    print(f"Checking {dataset_id}:")
+    run_all_checks(dataset, check_identical=False)
 
 
 if __name__ == "__main__":

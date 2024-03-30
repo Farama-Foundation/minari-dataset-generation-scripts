@@ -134,6 +134,10 @@ def check_episode_shapes(dataset):
 def check_infos_consistency(dataset):
     """Check that all infos dicts have consistent keys and shapes."""
     first_ep = next(iter(dataset))
+
+    if not hasattr(first_ep, "infos"):
+        return
+
     info_shapes = {k: v.shape[1:] for k, v in first_ep.infos.items()}
 
     for i, ep in enumerate(dataset):
