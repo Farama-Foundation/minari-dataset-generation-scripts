@@ -22,7 +22,7 @@ from stable_baselines3 import SAC
 from controller import WaypointController
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../checks")))
-from check_antmaze_dataset import run_antmaze_checks
+from check_maze_dataset import run_maze_checks
 
 R = "r"
 G = "g"
@@ -203,7 +203,7 @@ if __name__ == "__main__":
                 obs, info = collector_env.reset(seed=seed)
 
         print(f"Checking {dataset_id}:")
-        assert run_antmaze_checks(dataset)
+        assert run_maze_checks(dataset)
 
         if args.upload_dataset:
             minari.upload_dataset(dataset_id, args.path_to_private_key)

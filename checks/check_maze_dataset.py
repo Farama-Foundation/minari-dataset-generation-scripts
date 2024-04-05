@@ -1,9 +1,9 @@
 """
-This script runs sanity checks on AntMaze/PointMaze datasets.
+This script runs sanity checks on antmaze/pointmaze datasets.
 
 Usage:
 
-python check_antmaze_dataset.py <dataset_id>
+python check_maze_dataset.py <dataset_id>
 """
 
 import argparse
@@ -15,8 +15,11 @@ import scipy
 import check_dataset
 
 
-def print_antmaze_stats(dataset):
-    """Print antmaze-specific stats for manual sanity checking."""
+def print_maze_stats(dataset):
+    """Print maze-specific stats for manual sanity checking.
+
+    This only applies to environments with a sparse reward on success.
+    """
     successes = 0
     velocity_sum = 0.0
 
@@ -31,14 +34,14 @@ def print_antmaze_stats(dataset):
     print("  | Avg velocity:", velocity_sum / dataset.total_steps)
 
 
-def check_antmaze_reset_nonterminal(dataset, reset_threshold=0.5):
+def check_maze_reset_nonterminal(dataset, reset_threshold=0.5):
     """Check if a reset (a jump in position) occurred on a non-terminal state."""
     for i, ep in enumerate(dataset):
         # Compute the distance between the x, y positions at successive
         # timesteps. The x, y coordinates are the [0, 1] indices.
         # See https://robotics.farama.org/envs/maze/ant_maze/
-        positions = ep.observations["achieved_goal"][:-1, 0:1]
-        next_positions = ep.observations["achieved_goal"][1:, 0:1]
+        positions = ep.observations["achieved_goal"][:-1, :2]
+        next_positions = ep.observations["achieved_goal"][1:, :2]
         diff = np.linalg.norm(positions - next_positions, axis=1)
 
         assert np.all(diff <= reset_threshold), f"Non-terminal reset in episode {i}."
@@ -78,7 +81,7 @@ def check_qpos_qvel_shapes(dataset):
     elif hasattr(env.unwrapped, "point_env"):
         unwrapped_env = env.unwrapped.point_env
     else:
-        raise ValueError("Environment must be AntMaze or PointMaze.")
+        raise ValueError("Environment must be antmaze or pointmaze.")
 
     num_q = unwrapped_env.model.nq
     num_v = unwrapped_env.model.nv
@@ -109,21 +112,21 @@ def check_qpos_qvel_shapes(dataset):
         assert qvel[i].shape == (num_steps, num_v), qvel_shape_message
 
 
-antmaze_check_functions = [
-    print_antmaze_stats,
-    check_antmaze_reset_nonterminal,
+maze_check_functions = [
+    print_maze_stats,
+    check_maze_reset_nonterminal,
     check_qpos_qvel_identical_values,
     check_qpos_qvel_shapes,
 ]
 
 
-def run_antmaze_checks(dataset, verbose=True):
-    """Run all of the Minari and AntMaze dataset checks."""
+def run_maze_checks(dataset, verbose=True, check_identical=True):
+    """Run all of the Minari and antmaze/pointmaze dataset checks."""
     # Run all of the common checks first
-    passed = check_dataset.run_all_checks(dataset)
+    passed = check_dataset.run_all_checks(dataset, check_identical=check_identical)
 
-    # Then run AntMaze specific checks
-    for check_fn in antmaze_check_functions:
+    # Then run maze-specific checks
+    for check_fn in maze_check_functions:
         try:
             check_fn(dataset)
         except AssertionError as err:
@@ -140,12 +143,14 @@ def run_antmaze_checks(dataset, verbose=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "dataset_name", type=str, help="name of minari AntMaze dataset to check"
+        "dataset_name",
+        type=str,
+        help="name of minari antmaze/pointmaze dataset to check",
     )
     args = parser.parse_args()
 
     dataset = minari.load_dataset(args.dataset_name)
 
     print("Checking:", args.dataset_name)
-    passed = run_antmaze_checks(dataset)
+    passed = run_maze_checks(dataset)
     print("All tests passed" if passed else "Tests FAILED")
