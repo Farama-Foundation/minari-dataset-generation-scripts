@@ -181,4 +181,4 @@ if __name__ == "__main__":
         assert run_maze_checks(dataset, check_identical=False)
         
         if args.upload_dataset:
-            minari.upload_dataset(dataset_id=args.dataset_name, path_to_private_key=args.path_to_private_key)
+            minari.upload_dataset(dataset_id=dataset_id, path_to_private_key=args.path_to_private_key)
