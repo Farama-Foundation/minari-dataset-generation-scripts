@@ -6,7 +6,7 @@ The envrionments used to regenerate the datasets are refactored versions of the 
 ## Installation
 
 ```
-git clone https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation
+git clone https://github.com/Farama-Foundation/minari-dataset-generation-scripts
 ```
 
 For reproducibility, each set of dataset creation scripts has its own requirements. For example, the Point Maze requirements can be installed with `pip install -r scripts/pointmaze/requirements.txt`.
