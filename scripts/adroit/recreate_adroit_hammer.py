@@ -3,7 +3,7 @@ import minari
 import os
 import gymnasium as gym
 from scripts.kitchen.utils import AdroitStepDataCallback, download_dataset_from_url
-from minari import DataCollectorV0
+from minari import DataCollector
 
 if __name__ == "__main__":
      # create directory to store the original d4rl datasets
@@ -15,12 +15,12 @@ if __name__ == "__main__":
     
     for dset in ['human', 'expert', 'cloned']:
         d4rl_dataset_name = 'hammer-' + dset + '-v1'
-        minari_dataset_name = 'hammer-' + dset + '-v0'
+        minari_dataset_name = 'hammer/' + dset + '-v0'
         
         d4rl_url = f'http://rail.eecs.berkeley.edu/datasets/offline_rl/hand_dapg_v1/{d4rl_dataset_name}.hdf5'
         download_dataset_from_url(d4rl_url)
         env = gym.make('AdroitHandHammer-v1', max_episode_steps=max_episode_steps[dset])
-        env = DataCollectorV0(env, step_data_callback=AdroitStepDataCallback, record_infos=True, max_buffer_steps=200000)
+        env = DataCollector(env, step_data_callback=AdroitStepDataCallback, record_infos=True, max_buffer_steps=200000)
 
         print(f'Recreating {d4rl_dataset_name} D4RL dataset to Minari {minari_dataset_name}')
         with h5py.File(f'd4rl_datasets/{d4rl_dataset_name}.hdf5', 'r') as f:
@@ -47,7 +47,12 @@ if __name__ == "__main__":
             if timeout:
                 reset_called = True
 
-        minari.create_dataset_from_collector_env(collector_env=env, dataset_name=minari_dataset_name, code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")        
+        env.create_dataset(
+            dataset_name=minari_dataset_name,
+            code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
+            author="Rodrigo de Lazcano",
+            author_email="rperezvicente@farama.org"
+        )        
 
         env.close()
         
