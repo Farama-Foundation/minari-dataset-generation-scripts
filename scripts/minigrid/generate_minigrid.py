@@ -3,7 +3,6 @@ import sys
 import argparse
 import gymnasium as gym
 import minigrid
-import minari
 from minari import DataCollector
 from gymnasium.spaces.text import alphanumeric
 import numpy as np
@@ -53,7 +52,7 @@ def generate_dataset(random):
         algorithm_name="RandomPolicy" if random else "ExpertPolicy",
         author="Omar G. Younis",
         author_email="omar.younis98@gmail.com",
-        code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
+        code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts",
     )
 
     print(f"Checking {dataset_id}:")

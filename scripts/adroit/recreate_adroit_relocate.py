@@ -4,7 +4,7 @@ import os
 import mujoco
 import numpy as np
 import gymnasium as gym
-from scripts.kitchen.utils import AdroitStepDataCallback, download_dataset_from_url
+from utils import AdroitStepDataCallback, download_dataset_from_url
 from minari import DataCollector
     
 
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     
     for dset in ['human', 'cloned', 'expert']:
         d4rl_dataset_name = 'relocate-' + dset + '-v1'
-        minari_dataset_name = 'relocate/' + dset + '-v0'
+        minari_dataset_name = 'D4RL/relocate/' + dset + '-v2'
         
         d4rl_url = f'http://rail.eecs.berkeley.edu/datasets/offline_rl/hand_dapg_v1/{d4rl_dataset_name}.hdf5'
         download_dataset_from_url(d4rl_url)   
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         env.close()
 
         env = gym.make('AdroitHandRelocate-v1', max_episode_steps=max_episode_steps[dset])
-        env = DataCollector(env, step_data_callback=AdroitStepDataCallback, record_infos=True, max_buffer_steps=10000)
+        env = DataCollector(env, step_data_callback=AdroitStepDataCallback, record_infos=True)
 
         reset_called = True
         last_episode_step = 0
@@ -70,8 +70,8 @@ if __name__ == "__main__":
                 reset_called = True
 
         env.create_dataset(
-            dataset_name=minari_dataset_name,
-            code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
+            dataset_id=minari_dataset_name,
+            code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts",
             author="Rodrigo de Lazcano",
             author_email="rperezvicente@farama.org"
         )

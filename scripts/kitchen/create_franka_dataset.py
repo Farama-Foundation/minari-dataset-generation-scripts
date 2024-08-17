@@ -3,8 +3,7 @@ import gymnasium
 import glob
 import os
 import numpy as np
-from minari import StepDataCallback, DataCollectorV0
-import minari
+from minari import StepDataCallback, DataCollector
 
 
 DIR_PATH = {'complete': '*microwave_kettle_switch_slide', 'partial': '*', 'mixed': '*'}
@@ -79,7 +78,7 @@ for dst, dir in DIR_PATH.items():
     else:
         max_episode_steps = 280
     env = gymnasium.make('FrankaKitchen-v1', remove_task_when_completed=False, terminate_on_tasks_completed=False, tasks_to_complete=GOAL_TASKS[dst], max_episode_steps=max_episode_steps)
-    env = DataCollectorV0(env, step_data_callback=KitchenStepDataCallback, record_infos=False)
+    env = DataCollector(env, step_data_callback=KitchenStepDataCallback, record_infos=False)
     act_mid = np.zeros(9)
     act_rng = np.ones(9)*2
     dataset = None
@@ -105,7 +104,7 @@ for dst, dir in DIR_PATH.items():
 
                 episode_steps += 1
 
-    dataset = minari.create_dataset_from_collector_env(collector_env=env, dataset_id=f'kitchen-{dst}-v0', code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
+    dataset = env.create_dataset(dataset_id=f'kitchen-{dst}-v0', code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
     env.close()      
     print(f'MAX EPISODE STEPS: {max_steps_episode}')
             

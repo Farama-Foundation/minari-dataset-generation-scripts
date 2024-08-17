@@ -163,7 +163,7 @@ if __name__ == "__main__":
                         eval_env=eval_env,
                         expert_policy=eval_waypoint_controller.compute_action,
                         algorithm_name=args.maze_solver,
-                        code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
+                        code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts",
                         author=args.author,
                         author_email=args.author_email,
                     )

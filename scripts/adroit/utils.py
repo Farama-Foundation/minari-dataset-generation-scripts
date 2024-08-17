@@ -1,5 +1,5 @@
 import os
-import urllib
+import urllib.request
 from minari import StepDataCallback
 
 def filepath_from_url(dataset_url):
@@ -19,5 +19,8 @@ def download_dataset_from_url(dataset_url):
 class AdroitStepDataCallback(StepDataCallback):
     def __call__(self, env, **kwargs):
         step_data = super().__call__(env, **kwargs)
+        if "success" not in step_data["info"]:
+            assert step_data["reward"] is None  # reset
+            step_data["info"]["success"] = False
         step_data['state'] = env.get_env_state()
         return step_data
