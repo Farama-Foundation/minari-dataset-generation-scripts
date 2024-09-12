@@ -45,7 +45,7 @@ def generate_dataset(random):
             obs, rew, terminated, truncated, info = env.step(action)
             done = terminated or truncated
 
-    dataset_id = f"minigrid/fourrooms{'-random' if random else ''}-v0"
+    dataset_id = f"D4RL/minigrid/fourrooms{'-random' if random else ''}-v0"
 
     dataset = env.create_dataset(
         dataset_id=dataset_id,

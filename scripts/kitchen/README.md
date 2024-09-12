@@ -1,1 +1,1 @@
-The 
+To recreate the datasets, you need the files from https://github.com/google-research/relay-policy-learning/blob/master/kitchen_demos_multitask.zip

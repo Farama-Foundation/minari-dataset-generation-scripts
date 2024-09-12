@@ -8,7 +8,11 @@ from minari import StepDataCallback, DataCollector
 
 DIR_PATH = {'complete': '*microwave_kettle_switch_slide', 'partial': '*', 'mixed': '*'}
 GOAL_TASKS = {'complete': ['microwave', 'kettle', 'light switch', 'slide cabinet'], 'partial': ['microwave', 'kettle', 'light switch', 'slide cabinet'], 'mixed': ['microwave', 'kettle', 'bottom burner', 'light switch']}
-
+DESCRIPTIONS = {
+    'complete': 'The complete dataset includes demonstrations of all 4 target subtasks being completed, in order.',
+    'partial': 'The mixed dataset contains various subtasks being performed, but the 4 target subtasks are never completed in sequence together.',
+    'mixed': 'The partial dataset includes other tasks being performed, but there are subtrajectories where the 4 target subtasks are completed in sequence.'
+}
 
 def parse_mjl_logs(read_filename, skipamount):
     print(f'READ FILE {read_filename}')
@@ -66,45 +70,55 @@ class KitchenStepDataCallback(StepDataCallback):
         step_data = super().__call__(env, obs, info, action, rew, terminated, truncated)
         
         # Add the simulation control input to the dataset
-        step_data['ctrl'] = env.data.ctrl
+        step_data['info'] = {"ctrl": env.data.ctrl}
         
         return step_data
 
 
-for dst, dir in DIR_PATH.items():
-    print(f'CREATING DATASET: {dst}')
-    if dst=='mixed' or dst=='partial':
-        max_episode_steps = 450
-    else:
-        max_episode_steps = 280
-    env = gymnasium.make('FrankaKitchen-v1', remove_task_when_completed=False, terminate_on_tasks_completed=False, tasks_to_complete=GOAL_TASKS[dst], max_episode_steps=max_episode_steps)
-    env = DataCollector(env, step_data_callback=KitchenStepDataCallback, record_infos=False)
-    act_mid = np.zeros(9)
-    act_rng = np.ones(9)*2
-    dataset = None
-    pattern = f'kitchen_demos_multitask/{dir}'
-    max_steps_episode = 0
-    demo_subdirs = sorted(glob.glob(pattern))
-    for subdir in demo_subdirs:
-        demo_files = glob.glob(os.path.join(subdir, '*.mjl'))
-        
-        print(f'Demo: {subdir}')
-        for demo_file in demo_files:
-            episode_steps = 0
-            data = parse_mjl_logs(demo_file, 40)
-            obs, _ = env.reset(seed=123)
-            if data['ctrl'].shape[0] > max_steps_episode:
-                max_steps_episode = data['ctrl'].shape[0]
-            for i_frame in range(data['ctrl'].shape[0] - 1):
-                # Construct the action
-                ctrl = (data['ctrl'][i_frame] - obs['observation'][:9])/(env.robot_env.frame_skip*env.robot_env.model.opt.timestep)
-                act = (ctrl - act_mid) / act_rng
-                act = np.clip(act, -0.999, 0.999)
-                obs, reward, terminated, truncated, env_info = env.step(act)
-
-                episode_steps += 1
-
-    dataset = env.create_dataset(dataset_id=f'kitchen-{dst}-v0', code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts", author="Rodrigo de Lazcano", author_email="rperezvicente@farama.org")
-    env.close()      
-    print(f'MAX EPISODE STEPS: {max_steps_episode}')
+def generate_datasets():
+    for dst, dir in DIR_PATH.items():
+        print(f'CREATING DATASET: {dst}')
+        if dst=='mixed' or dst=='partial':
+            max_episode_steps = 450
+        else:
+            max_episode_steps = 280
+        env = gymnasium.make('FrankaKitchen-v1', remove_task_when_completed=False, terminate_on_tasks_completed=False, tasks_to_complete=GOAL_TASKS[dst], max_episode_steps=max_episode_steps)
+        env = DataCollector(env, step_data_callback=KitchenStepDataCallback, record_infos=True)
+        act_mid = np.zeros(9)
+        act_rng = np.ones(9)*2
+        dataset = None
+        pattern = f'kitchen_demos_multitask/{dir}'
+        max_steps_episode = 0
+        demo_subdirs = sorted(glob.glob(pattern))
+        for subdir in demo_subdirs:
+            demo_files = glob.glob(os.path.join(subdir, '*.mjl'))
             
+            print(f'Demo: {subdir}')
+            for demo_file in demo_files:
+                episode_steps = 0
+                data = parse_mjl_logs(demo_file, 40)
+                obs, _ = env.reset()
+                if data['ctrl'].shape[0] > max_steps_episode:
+                    max_steps_episode = data['ctrl'].shape[0]
+                for i_frame in range(data['ctrl'].shape[0] - 1):
+                    # Construct the action
+                    ctrl = (data['ctrl'][i_frame] - obs['observation'][:9])/(env.robot_env.frame_skip*env.robot_env.model.opt.timestep)
+                    act = (ctrl - act_mid) / act_rng
+                    act = np.clip(act, -0.999, 0.999)
+                    obs, reward, terminated, truncated, env_info = env.step(act)
+
+                    episode_steps += 1
+
+        dataset = env.create_dataset(
+            dataset_id=f'D4RL/kitchen/{dst}-v2',
+            code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts",
+            author="Rodrigo de Lazcano",
+            author_email="rperezvicente@farama.org",
+            description=DESCRIPTIONS[dst]
+        )
+        env.close()      
+        print(f'MAX EPISODE STEPS: {max_steps_episode}')
+                
+
+if __name__ == '__main__':
+    generate_datasets()
