@@ -1,7 +1,7 @@
 # D4RL to Minari datasets
 This repository contains the scripts to convert the [D4RL](https://github.com/Farama-Foundation/D4RL) environment datasets based on MuJoCo to [Minari](https://github.com/Farama-Foundation/Minari) datasets.
 
-The envrionments used to regenerate the datasets are refactored versions of the originals. These new environment versions are now maintained in the [Gymnasium-Robotics](https://robotics.farama.org/) project, they follow the Gymnasium API, and have been updated to use the latest mujoco bindings from Deepmind.
+The environments used to regenerate the datasets are refactored versions of the originals. These new environment versions are now maintained in the [Gymnasium-Robotics](https://robotics.farama.org/) project, they follow the Gymnasium API, and have been updated to use the latest mujoco bindings from Deepmind.
 
 ## Installation
 
