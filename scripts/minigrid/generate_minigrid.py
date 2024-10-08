@@ -3,8 +3,7 @@ import sys
 import argparse
 import gymnasium as gym
 import minigrid
-import minari
-from minari import DataCollectorV0
+from minari import DataCollector
 from gymnasium.spaces.text import alphanumeric
 import numpy as np
 np.random.seed(42)
@@ -29,7 +28,7 @@ def generate_dataset(random):
         )
     })
 
-    env = DataCollectorV0(env, record_infos=True, max_buffer_steps=1_000_000, observation_space=obs_space)
+    env = DataCollector(env, record_infos=True, observation_space=obs_space, data_format="arrow")
 
     step_lower_bound = 1_000_000 if random else 10_000
     step_id = 0
@@ -46,16 +45,14 @@ def generate_dataset(random):
             obs, rew, terminated, truncated, info = env.step(action)
             done = terminated or truncated
 
-    dataset_id = f"minigrid-fourrooms{'-random' if random else ''}-v0"
+    dataset_id = f"D4RL/minigrid/fourrooms{'-random' if random else ''}-v0"
 
-    dataset = minari.create_dataset_from_collector_env(
+    dataset = env.create_dataset(
         dataset_id=dataset_id,
-        collector_env=env,
         algorithm_name="RandomPolicy" if random else "ExpertPolicy",
         author="Omar G. Younis",
         author_email="omar.younis98@gmail.com",
-        minari_version=">=0.4.0",
-        code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
+        code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts",
     )
 
     print(f"Checking {dataset_id}:")

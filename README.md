@@ -1,12 +1,12 @@
 # D4RL to Minari datasets
 This repository contains the scripts to convert the [D4RL](https://github.com/Farama-Foundation/D4RL) environment datasets based on MuJoCo to [Minari](https://github.com/Farama-Foundation/Minari) datasets.
 
-The envrionments used to regenerate the datasets are refactored versions of the originals. These new environment versions are now maintained in the [Gymnasium-Robotics](https://robotics.farama.org/) project, they follow the Gymnasium API, and have been updated to use the latest mujoco bindings from Deepmind.
+The environments used to regenerate the datasets are refactored versions of the originals. These new environment versions are now maintained in the [Gymnasium-Robotics](https://robotics.farama.org/) project, they follow the Gymnasium API, and have been updated to use the latest mujoco bindings from Deepmind.
 
 ## Installation
 
 ```
-git clone https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation
+git clone https://github.com/Farama-Foundation/minari-dataset-generation-scripts
 ```
 
 For reproducibility, each set of dataset creation scripts has its own requirements. For example, the Point Maze requirements can be installed with `pip install -r scripts/pointmaze/requirements.txt`.
