@@ -8,17 +8,20 @@ python create_antmaze_dataset.py
 See --help for full list of options.
 """
 
-import sys
+import argparse
 import os
+import random
+import sys
+from copy import deepcopy
+
 import gymnasium as gym
 import minari
-from minari import DataCollector, StepDataCallback
-from tqdm import tqdm
-from copy import deepcopy
 import numpy as np
-import argparse
-
+import torch
+from minari import DataCollector, StepDataCallback
 from stable_baselines3 import SAC
+from tqdm import tqdm
+
 from controller import WaypointController
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../checks")))
@@ -28,13 +31,19 @@ R = "r"
 G = "g"
 INFO_KEYS = ["success"]
 
+def seed_everything(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
 
 class AntMazeStepDataCallback(StepDataCallback):
-    """Add environment state information to 'infos'.
+    """Add environment state information to 'info'.
 
     Also, since the environment generates a new target every time it reaches a goal, the
     environment is never terminated or truncated. This callback overrides the truncation
-    value to True when the step returns a True 'success' key in 'infos'. This way we can
+    value to True when the step returns a True 'success' key in 'info'. This way we can
     divide the Minari dataset into different trajectories.
     """
 
@@ -44,14 +53,14 @@ class AntMazeStepDataCallback(StepDataCallback):
         step_data = super().__call__(env, obs, info, action, rew, terminated, truncated)
 
         # Filter out info keys that we don't want to store
-        step_data["infos"] = {k: step_data["infos"][k] for k in INFO_KEYS}
+        step_data["info"] = {k: step_data["info"][k] for k in INFO_KEYS}
 
         # To restore the MuJoCo simulation state, we need to store qpos and qvel
-        step_data["infos"]["qpos"] = np.concatenate(
+        step_data["info"]["qpos"] = np.concatenate(
             [obs["achieved_goal"], obs["observation"][:13]]
         )
-        step_data["infos"]["qvel"] = obs["observation"][13:]
-        step_data["infos"]["goal"] = obs["desired_goal"]
+        step_data["info"]["qvel"] = obs["observation"][13:]
+        step_data["info"]["goal"] = obs["desired_goal"]
 
         return step_data
 
@@ -99,12 +108,12 @@ EVAL_ENV_MAPS = {"umaze": [[1, 1, 1, 1, 1],
                     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
                 }
 
-DATASET_ID_TO_ENV_ID = {"antmaze-umaze-v1": "AntMaze_UMaze-v4",
-                        "antmaze-umaze-diverse-v1": "AntMaze_UMaze-v4",
-                        "antmaze-medium-play-v1": "AntMaze_Medium-v4",
-                        "antmaze-medium-diverse-v1": "AntMaze_Medium_Diverse_GR-v4",
-                        "antmaze-large-diverse-v1": "AntMaze_Large_Diverse_GR-v4",
-                        "antmaze-large-play-v1": "AntMaze_Large-v4"}
+DATASET_ID_TO_ENV_ID = {"D4RL/antmaze/umaze-v2": "AntMaze_UMaze-v4",
+                        "D4RL/antmaze/umaze-diverse-v2": "AntMaze_UMaze-v4",
+                        "D4RL/antmaze/medium-play-v2": "AntMaze_Medium-v4",
+                        "D4RL/antmaze/medium-diverse-v2": "AntMaze_Medium_Diverse_GR-v4",
+                        "D4RL/antmaze/large-diverse-v2": "AntMaze_Large_Diverse_GR-v4",
+                        "D4RL/antmaze/large-play-v2": "AntMaze_Large-v4"}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -141,8 +150,8 @@ if __name__ == "__main__":
         # is also not reset when it is reached, leading to reward accumulation.
         # We set the maximum episode steps to the desired size of our Minari
         # dataset (evade truncation due to time limit)
-        split_dataset_id = dataset_id.split('-')
-        if split_dataset_id[1] == "umaze" and split_dataset_id[2] != "diverse":
+        split_dataset_id = dataset_id.split('/')[-1].split('-')
+        if split_dataset_id[0] == "umaze" and split_dataset_id[1] != "diverse":
             maze_map = [[1, 1, 1, 1, 1],
                         [1, G, 0, 0, 1],
                         [1, 1, 1, 0, 1],
@@ -156,7 +165,7 @@ if __name__ == "__main__":
                 env_id, continuing_task=True, reset_target=False,
             )
         # Data collector wrapper to save temporary data while stepping. Characteristics:
-        #   * Custom StepDataCallback to add extra state information to 'infos' and divide dataset in
+        #   * Custom StepDataCallback to add extra state information to 'info' and divide dataset in
         #     different episodes by overriding truncation value to True when target is reached
         #   * Record the 'info' value of every step
         collector_env = DataCollector(
@@ -164,7 +173,7 @@ if __name__ == "__main__":
         )
 
         seed = args.seed
-        np.random.seed(seed)
+        seed_everything(seed)
 
         model = SAC.load(args.policy_file)
 
@@ -189,7 +198,7 @@ if __name__ == "__main__":
 
                 if dataset is None:
                     eval_env_spec = deepcopy(env.spec)
-                    eval_env_spec.kwargs['maze_map'] = EVAL_ENV_MAPS[split_dataset_id[1]]
+                    eval_env_spec.kwargs['maze_map'] = EVAL_ENV_MAPS[split_dataset_id[0]]
                     eval_env = gym.make(eval_env_spec)
                     eval_waypoint_controller = WaypointController(eval_env.unwrapped.maze, action_callback)
                     dataset = init_dataset(collector_env, dataset_id, eval_env_spec, eval_waypoint_controller.compute_action, args)
@@ -200,6 +209,7 @@ if __name__ == "__main__":
             # Reset the environment, either due to timeout or checkpointing.
             if truncated:
                 seed += 1  # Increment the seed to prevent repeating old episodes
+                seed_everything(seed)
                 obs, info = collector_env.reset(seed=seed)
 
         print(f"Checking {dataset_id}:")

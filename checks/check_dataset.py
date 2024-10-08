@@ -115,7 +115,7 @@ def check_episode_shapes(dataset):
     """
     # Check episodes
     for i, ep in enumerate(dataset):
-        num_steps = ep.total_timesteps
+        num_steps = len(ep)
         env = dataset.recover_environment()
 
         # Check each key has the correct shape
@@ -141,7 +141,7 @@ def check_infos_consistency(dataset):
     info_shapes = {k: v.shape[1:] for k, v in first_ep.infos.items()}
 
     for i, ep in enumerate(dataset):
-        num_steps = ep.total_timesteps
+        num_steps = len(ep)
         infos = ep.infos
 
         assert (
