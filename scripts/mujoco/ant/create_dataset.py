@@ -8,12 +8,28 @@ from stable_baselines3 import SAC
 SEED = 12345
 NUM_STEPS = int(2e6)
 
+
+class AddExcludedObservationElements(StepDataCallback):
+    """Add Excluded observation elements like cfrc_ext to the observation space."""
+
+    def __call__(self, env, **kwargs):
+        step_data = super().__call__(env, **kwargs)
+        # if getattr(env, "_include_cinert_in_observation", None) is False:
+        # if getattr(env, "_include_cvel_in_observation ", None) is False:
+        # if getattr(env, "_include_qfrc_actuator_in_observation ", None) is False:
+        if env.unwrapped._include_cfrc_ext_in_observation is False:
+            step_data["observation"] = np.concatenate(
+                [step_data["observation"], env.unwrapped.contact_forces[1:].flat.copy()]
+            )
+
+        return step_data
+
 DATASET_NAME = "mujoco/ant/expert-v0"
 assert DATASET_NAME not in minari.list_local_datasets()
 
 env = gym.make("Ant-v5", max_episode_steps=1000)
-collector_env = DataCollector(
-    env,
+collector_env = DataCollector(env,
+    step_data_callback=AddExcludedObservationElements,
     record_infos=False,
 )
 obs, _ = collector_env.reset(seed=SEED)
