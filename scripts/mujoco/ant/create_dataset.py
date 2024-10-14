@@ -2,7 +2,7 @@ __credits__ = ["Kallinteris Andreas"]
 
 import gymnasium as gym
 import minari
-from minari import DataCollector
+from minari import DataCollector, StepDataCallback
 from stable_baselines3 import SAC
 
 SEED = 12345
