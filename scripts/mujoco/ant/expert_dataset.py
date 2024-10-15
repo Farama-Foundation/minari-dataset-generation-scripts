@@ -2,6 +2,7 @@ __credits__ = ["Kallinteris Andreas"]
 
 import gymnasium as gym
 import minari
+import numpy as np
 from minari import DataCollector, StepDataCallback
 from stable_baselines3 import SAC
 
@@ -27,10 +28,14 @@ class AddExcludedObservationElements(StepDataCallback):
 DATASET_NAME = "mujoco/ant/expert-v0"
 assert DATASET_NAME not in minari.list_local_datasets()
 
-env = gym.make("Ant-v5", max_episode_steps=1000)
-collector_env = DataCollector(env,
+env = gym.make("Ant-v5", include_cfrc_ext_in_observation=False, max_episode_steps=1000)
+env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
+
+collector_env = DataCollector(
+    env,
     step_data_callback=AddExcludedObservationElements,
     record_infos=False,
+    observation_space=gym.spaces.Box(-np.inf, np.inf, (105,), np.float64),
 )
 obs, _ = collector_env.reset(seed=SEED)
 
@@ -50,6 +55,7 @@ for n_step in range(NUM_STEPS):
 
     if terminated or truncated:
         env.reset()
+
 
 dataset = collector_env.create_dataset(
     dataset_id=DATASET_NAME,
