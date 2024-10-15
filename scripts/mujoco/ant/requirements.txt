@@ -92,7 +92,7 @@ scipy==1.14.1
 setuptools==75.1.0
 shellingham==1.5.4
 six==1.16.0
-stable-baselines3=git+https://github.com/pseudo-rnd-thoughts/stable-baselines3.git@2f6246033cb9111ad0d0df9d9bd98555957e08b5#egg=stable_baselines3
+stable-baselines3@git+https://github.com/pseudo-rnd-thoughts/stable-baselines3.git@2f6246033cb9111ad0d0df9d9bd98555957e08b5#egg=stable_baselines3
 swig==4.2.1
 sympy==1.13.3
 tensorstore==0.1.66
