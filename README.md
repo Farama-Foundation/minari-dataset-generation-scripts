@@ -20,10 +20,10 @@ The point maze datasets have been regenerated using the same `q_iteration` exper
 
 You can run the script used to regenerate the datasets with:
 ```
-python scripts/pointmaze/create_pointmaze_dataset --env "PointMaze_UMaze-v3" --dataset_name="pointmaze-umaze-v0" --maze-solver="QIteration"
+python scripts/pointmaze/create_pointmaze_dataset.py
 ```
 
-This will generate a local Minari dataset named `pointmaze-umaze-v0` for the `PointMaze_UMaze-v3` environment, using `q_iteration` as the expert policy, Depth First Search can also be used as the algorithm to generate a path to the goal by passing "DFS" instead of "QIteration".
+This will generate a set of local Minari datasets named e.g. `pointmaze/umaze-v0`, using `q_iteration` as the expert policy. Depth First Search can also be used as the algorithm to generate a path to the goal by passing "DFS" instead of "QIteration".
 
 ### Adroit Hand
 
