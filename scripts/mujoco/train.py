@@ -87,8 +87,8 @@ INFO_KEYS = {
     "Humanoid": {
         "x_position",
         "y_position",
-        # "tendon_length",
-        # "tendon_velocity",
+        # "tendon_length",  # Tendons are not kept in info for compatability
+        # "tendon_velocity",  # Tendons are not kept in info for compatability
         "distance_from_origin",
         "x_velocity",
         "y_velocity",
@@ -101,8 +101,8 @@ INFO_KEYS = {
         "x_position",
         "y_position",
         "z_distance_from_origin",
-        # "tendon_length",
-        # "tendon_velocity",
+        # "tendon_length",  # Tendons are not kept in info for compatability
+        # "tendon_velocity",  # Tendons are not kept in info for compatability
         "distance_from_origin",
         "reward_linup",
         "reward_quadctrl",
@@ -310,8 +310,6 @@ if __name__ == "__main__":
             run.finish()
 
         print("FINISHED LEARNING")
-        print("FINISHED LEARNING")
-        print("FINISHED LEARNING")
 
         eval_env = make_vec_env(f"{env_id}-v5", n_envs=1)
 
@@ -343,23 +341,3 @@ if __name__ == "__main__":
         )
 
         print("FINISHED HF")
-        print("FINISHED HF")
-        print("FINISHED HF")
-
-        """
-        # Replace InfoReplayBuffer for sb3 ReplayBuffer
-        model = SAC.load(
-            f"logs/{env_id}/rl_model_200000_steps.zip",
-            custom_objects={"replay_buffer_class": ReplayBuffer, "replay_buffer_kwargs": {}, "lr_schedule": lambda _: 0.0},
-        )
-
-        package_to_hub(
-            model=model,
-            model_name=f"{env_id.lower()}-v5-{ALGORITHM}-medium",
-            model_architecture=ALGORITHM.upper(),
-            env_id=f"{env_id}-v5",
-            eval_env=eval_env,
-            repo_id=f"farama-minari/{env_id}-v5-{}-medium",
-            commit_message="model",
-        )
-        """
