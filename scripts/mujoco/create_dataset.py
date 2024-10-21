@@ -9,7 +9,7 @@ ENV_IDS = [
     ("InvertedDoublePendulum", ("medium", "expert"), 100_000, "SAC"),
     ("Reacher", ("medium", "expert"), 500_000, "SAC"),
     ("Pusher", ("medium", "expert"), 500_000, "SAC"),
-    ("HalfCheetah", ("simple", "medium", "expert"), 1_000_000, "SAC"),
+    #("HalfCheetah", ("simple", "medium", "expert"), 1_000_000, "SAC"),
     ("Hopper", ("simple", "medium", "expert"), 1_000_000, "SAC"),
     ("Walker2d", ("simple", "medium", "expert"), 1_000_000, "SAC"),
     ("Swimmer", ("simple", "medium", "expert"), 1_000_000, "SAC"),
@@ -23,10 +23,13 @@ def create_dataset_from_policy(dataset_id, collector_env, policy, n_steps: int, 
     truncated = True
     terminated = True
     seed = 123
-    for _ in tqdm(range(n_steps)):
+    for step in tqdm(range(n_steps)):
         if terminated or truncated:
             obs, _ = env.reset(seed=seed)
             seed += 1
+            if (n_steps - step) < 1000:  # trim trailing non-full episodes
+                break
+
         action = policy(obs)
         obs, _, terminated, truncated, _ = env.step(action)
 
@@ -79,7 +82,7 @@ if __name__ == "__main__":
                 f"{env_id.lower()}/expert-v0",
                 env,
                 lambda x: expert_policy.predict(x)[0],
-                n_steps=n_steps,
+                n_steps,
                 algo,
             )
 
@@ -93,7 +96,7 @@ if __name__ == "__main__":
                 f"{env_id.lower()}/medium-v0",
                 env,
                 lambda x: medium_policy.predict(x)[0],
-                n_steps=n_steps,
+                n_steps,
                 algo,
             )
 
@@ -107,6 +110,6 @@ if __name__ == "__main__":
                 f"{env_id.lower()}/simple-v0",
                 env,
                 lambda x: simple_policy.predict(x)[0],
-                n_steps=n_steps,
+                n_steps,
                 algo,
             )
