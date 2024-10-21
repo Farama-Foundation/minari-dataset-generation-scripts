@@ -27,7 +27,7 @@ def create_dataset_from_policy(dataset_id, collector_env, policy, n_steps: int, 
         if terminated or truncated:
             obs, _ = env.reset(seed=seed)
             seed += 1
-            if (n_steps - step) < 1000:  # trim trailing non-full episodes
+            if (n_steps - step) < collector_env.spec.max_episode_steps :  # trim trailing non-full episodes
                 break
 
         action = policy(obs)
