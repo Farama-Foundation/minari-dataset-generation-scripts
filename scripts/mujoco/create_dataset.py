@@ -9,7 +9,7 @@ ENV_IDS = [
     ("InvertedDoublePendulum", ("medium", "expert"), 100_000, "SAC"),
     ("Reacher", ("medium", "expert"), 500_000, "SAC"),
     ("Pusher", ("medium", "expert"), 500_000, "SAC"),
-    #("HalfCheetah", ("simple", "medium", "expert"), 1_000_000, "SAC"),
+    ("HalfCheetah", ("simple", "medium", "expert"), 1_000_000, "SAC"),
     ("Hopper", ("simple", "medium", "expert"), 1_000_000, "SAC"),
     ("Walker2d", ("simple", "medium", "expert"), 1_000_000, "SAC"),
     ("Swimmer", ("simple", "medium", "expert"), 1_000_000, "SAC"),
