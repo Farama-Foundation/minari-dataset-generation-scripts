@@ -3,11 +3,13 @@ from huggingface_sb3 import load_from_hub
 from stable_baselines3 import SAC
 from stable_baselines3.common.evaluation import evaluate_policy
 
-ENV_ID = "HalfCheetah"
+ENV_ID = "Ant"
 ALGORITHM = "SAC"
-PROFICIENCY = "medium"
+# PROFICIENCY = "medium"
+PROFICIENCY = "expert-fine-tuned"
 
 eval_env = gym.make(f"{ENV_ID}-v5")
+eval_env = gym.make(f"{ENV_ID}-v5", include_cfrc_ext_in_observation=False)
 
 match ALGORITHM:
     case "SAC":

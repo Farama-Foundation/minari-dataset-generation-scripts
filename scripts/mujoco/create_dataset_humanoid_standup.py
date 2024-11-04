@@ -1,22 +1,37 @@
 import gymnasium as gym
 import minari
+import numpy as np
 from huggingface_sb3 import load_from_hub
 from stable_baselines3 import PPO, SAC, TD3
 from tqdm import tqdm
 
 ENV_IDS = [
-    ("InvertedPendulum", ("medium", "expert"), 100_000, "SAC"),
-    ("InvertedDoublePendulum", ("medium", "expert"), 100_000, "SAC"),
-    ("Reacher", ("medium", "expert"), 500_000, "SAC"),
-    ("Pusher", ("medium", "expert"), 500_000, "SAC"),
-    ("HalfCheetah", ("simple", "medium", "expert"), 1_000_000, "SAC"),
-    ("Hopper", ("simple", "medium", "expert"), 1_000_000, "SAC"),
-    ("Walker2d", ("simple", "medium", "expert"), 1_000_000, "SAC"),
-    ("Swimmer", ("expert"), 1_000_000, "SAC"),
-    ("Ant", ("simple", "medium"), 1_000_000, "SAC"),
-    ("Humanoid", ("simple", "medium", "expert"), 1_000_000, "SAC"),
-    #("HumanoidStandup", ("simple", "medium", "expert"), 1_000_000, "SAC"),
+    ("HumanoidStandup", ("simple", "medium", "expert"), 1_000_000, "SAC"),
 ]
+
+class AddExcludedObservationElements(minari.StepDataCallback):
+    """Add Excluded observation elements like `cfrc_ext` to the observation space."""
+
+    def __call__(self, env, **kwargs):
+        step_data = super().__call__(env, **kwargs)
+        if getattr(env.unwrapped, "_include_cinert_in_observation", True) is False:
+            step_data["observation"] = np.concatenate(
+                [step_data["observation"], env.unwrapped.data.cinert[1:].flatten()]
+            )
+        if getattr(env.unwrapped, "_include_cvel_in_observation", True) is False:
+            step_data["observation"] = np.concatenate(
+                [step_data["observation"], env.unwrapped.data.cvel[1:].flatten()]
+            )
+        if getattr(env.unwrapped, "_include_qfrc_actuator_in_observation", True) is False:
+            step_data["observation"] = np.concatenate(
+                [step_data["observation"], env.unwrapped.data.qfrc_actuator[6:].flatten()]
+            )
+        if getattr(env.unwrapped, "_include_cfrc_ext_in_observation", True) is False:
+            step_data["observation"] = np.concatenate(
+                [step_data["observation"], env.unwrapped.data.cfrc_ext[1:].flat.copy()]
+            )
+
+        return step_data
 
 
 def create_dataset_from_policy(dataset_id, collector_env, policy, n_steps: int, algorithm_name):
@@ -62,6 +77,15 @@ def load_policy(env_id: str, algo: str, proficiency: str):
     return policy
 
 
+def make_env(env_id: str):
+    """Wrapper to create the appropriate environment."""
+    if env_id == "HumanoidStandup":
+        env = gym.make(f"{env_id}-v5", include_cinert_in_observation=False, include_cvel_in_observation=False, include_qfrc_actuator_in_observation=False, include_cfrc_ext_in_observation=False)
+    else:
+        env = gym.make(f"{env_id}-v5", render_mode="rgb_array",)
+    return env
+
+
 if __name__ == "__main__":
     for env_run_spec in ENV_IDS:
         # unpack dataset spec
@@ -74,8 +98,9 @@ if __name__ == "__main__":
         # make datasets
         print(f"\nCREATING EXPERT DATASET FOR {env_id}")
         if "expert" in proficiencies:
-            env = gym.make(f"{env_id}-v5")
-            env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
+            env = make_env(env_id)
+            env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
+            env = minari.DataCollector(env, step_data_callback=AddExcludedObservationElements, record_infos=False, observation_space=gym.spaces.Box(-np.inf, np.inf, (348,), np.float64))  # TODO record_info?
 
             expert_policy = load_policy(env_id, algo, "expert")
             expert_dataset = create_dataset_from_policy(
@@ -88,8 +113,9 @@ if __name__ == "__main__":
 
         print(f"\nCREATING MEDIUM DATASET FOR {env_id}")
         if "medium" in proficiencies:
-            env = gym.make(f"{env_id}-v5")
-            env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
+            env = make_env(env_id)
+            env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
+            env = minari.DataCollector(env, step_data_callback=AddExcludedObservationElements, record_infos=False, observation_space=gym.spaces.Box(-np.inf, np.inf, (348,), np.float64))  # TODO record_info?
 
             medium_policy = load_policy(env_id, algo, "medium")
             medium_dataset = create_dataset_from_policy(
@@ -102,8 +128,9 @@ if __name__ == "__main__":
 
         print(f"\nCREATING SIMPLE DATASET FOR {env_id}")
         if "simple" in proficiencies:
-            env = gym.make(f"{env_id}-v5")
-            env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
+            env = make_env(env_id)
+            env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
+            env = minari.DataCollector(env, step_data_callback=AddExcludedObservationElements, record_infos=False, observation_space=gym.spaces.Box(-np.inf, np.inf, (348,), np.float64))  # TODO record_info?
 
             simple_policy = load_policy(env_id, algo, "simple")
             simple_dataset = create_dataset_from_policy(

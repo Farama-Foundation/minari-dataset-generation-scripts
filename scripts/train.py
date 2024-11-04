@@ -14,12 +14,12 @@ from wandb.integration.sb3 import WandbCallback
 import wandb
 
 # NOTE: different timesteps are used for different environments/proficiencies, check `config.yaml` for indivigual values
+HF_REPO = "farama-minari"
 
-ALGORITHM = "ppo"
-PROFICIENCY = "expert"
-TIMESTEPS = 10000_000
-# ["HalfCheetah", "Ant", "Hopper", "Walker2d", "InvertedPendulum", "InvertedDoublePendulum", "Reacher", "Pusher", "Swimmer"]
-ENV_LIST = ["HumanoidStandup"]
+ALGORITHM = "sac"
+PROFICIENCY = "medium"
+TIMESTEPS = 20_000_000
+ENV_LIST = ["HalfCheetah", "Ant", "Hopper", "Walker2d", "InvertedPendulum", "InvertedDoublePendulum", "Reacher", "Pusher", "Swimmer", "Humanoid", "HumanoidStandup"]
 RUNS = 1
 
 print(f"Training {ENV_LIST}/{PROFICIENCY} - {ALGORITHM}/{TIMESTEPS}")
@@ -122,7 +122,7 @@ def gen_learning_start(env_id: str):
 
 def gen_gamma(env_id: str):
     if env_id == "Swimmer":
-        return 0.9999
+        return 1.0
     return 0.99
 
 
@@ -235,25 +235,59 @@ class InfoReplayBuffer(ReplayBuffer):
 
 def make_env(env_id: str, run_name: str):
     """Wrapper to create the appropriate environment."""
-    env = gym.make(
-        f"{env_id}-v5",
-        render_mode="rgb_array",
-    )
+    if env_id == "HumanoidStandup":
+        env = gym.make(f"{env_id}-v5", render_mode="rgb_array", include_cinert_in_observation=False, include_cvel_in_observation=False, include_qfrc_actuator_in_observation=False, include_cfrc_ext_in_observation=False)
+    else:
+        env = gym.make(f"{env_id}-v5", render_mode="rgb_array",)
     env = RecordVideo(env, f"videos/{run_name}")
     env = Monitor(env)
     return env
+
+def initialize_mode(algo_name):
+    if ALGORITHM == "sac":
+        model = SAC(
+            "MlpPolicy",
+            env,
+            tensorboard_log=f"runs/{run.id}",
+            learning_starts=gen_learning_start(env_id),
+            gamma=gen_gamma(env_id),
+            use_sde=False,
+            seed=seed,
+            replay_buffer_class=InfoReplayBuffer,
+            replay_buffer_kwargs={"info_keys": INFO_KEYS[env_id]},
+        )
+    elif ALGORITHM == "td3":
+        model = TD3(
+            "MlpPolicy",
+            env,
+            tensorboard_log=f"runs/{run.id}",
+            learning_starts=gen_learning_start(env_id),
+            gamma=gen_gamma(env_id),
+            seed=seed,
+            replay_buffer_class=InfoReplayBuffer,
+            replay_buffer_kwargs={"info_keys": INFO_KEYS[env_id]},
+        )
+    elif ALGORITHM == "ppo":
+        model = PPO(
+            "MlpPolicy",
+            env,
+            tensorboard_log=f"runs/{run.id}",
+            gamma=gen_gamma(env_id),
+            seed=seed,
+            ent_coef=5e-6,
+            device="cpu",
+        )
 
 
 if __name__ == "__main__":
     for env_id in ENV_LIST:
         for seed in range(RUNS):
-            run_name = f"{env_id}-SAC-{seed}"
+            run_name = f"{env_id}-{ALGORITHM.upper()}-{seed}"
             n_envs = 5
             # Set up WandB run
             run = wandb.init(
                 project="Minari",
                 name=run_name,
-                # config=config,
                 sync_tensorboard=True,
                 monitor_gym=True,
                 save_code=True,
@@ -261,39 +295,7 @@ if __name__ == "__main__":
 
             env = make_vec_env(make_env, n_envs=n_envs, env_kwargs={"env_id": env_id, "run_name": run_name})
 
-            if ALGORITHM == "sac":
-                model = SAC(
-                    "MlpPolicy",
-                    env,
-                    tensorboard_log=f"runs/{run.id}",
-                    learning_starts=gen_learning_start(env_id),
-                    gamma=gen_gamma(env_id),
-                    use_sde=False,
-                    seed=seed,
-                    replay_buffer_class=InfoReplayBuffer,
-                    replay_buffer_kwargs={"info_keys": INFO_KEYS[env_id]},
-                )
-            elif ALGORITHM == "td3":
-                model = TD3(
-                    "MlpPolicy",
-                    env,
-                    tensorboard_log=f"runs/{run.id}",
-                    learning_starts=gen_learning_start(env_id),
-                    gamma=gen_gamma(env_id),
-                    seed=seed,
-                    replay_buffer_class=InfoReplayBuffer,
-                    replay_buffer_kwargs={"info_keys": INFO_KEYS[env_id]},
-                )
-            elif ALGORITHM == "ppo":
-                model = PPO(
-                    "MlpPolicy",
-                    env,
-                    tensorboard_log=f"runs/{run.id}",
-                    gamma=gen_gamma(env_id),
-                    seed=seed,
-                    ent_coef=5e-6,
-                    device="cpu",
-                )
+            model = initialize_mode(ALGORITHM)
 
             wandb_callback = WandbCallback()
             # Save a checkpoint every 100000 steps
@@ -301,7 +303,6 @@ if __name__ == "__main__":
                 save_freq=int(100000 / n_envs),
                 save_path=f"logs/{env_id}/",
                 name_prefix="rl_model",
-                # save_replay_buffer=True,
                 save_replay_buffer=False,
             )
 
@@ -311,7 +312,10 @@ if __name__ == "__main__":
 
         print("FINISHED LEARNING")
 
-        eval_env = make_vec_env(f"{env_id}-v5", n_envs=1)
+        if env_id == "HumandoidStandup":
+            eval_env = make_vec_env(f"{env_id}-v5", n_envs=1, env_kwargs={"include_cinert_in_observation":False, "include_cvel_in_observation":False, "include_qfrc_actuator_in_observation":False, "include_cfrc_ext_in_observation":False})
+        else:
+            eval_env = make_vec_env(f"{env_id}-v5", n_envs=1)
 
         # Replace InfoReplayBuffer for sb3 ReplayBuffer
         if ALGORITHM == "sac":
@@ -336,8 +340,9 @@ if __name__ == "__main__":
             model_architecture=ALGORITHM.upper(),
             env_id=f"{env_id}-v5",
             eval_env=eval_env,
-            repo_id=f"farama-minari/{env_id}-v5-{ALGORITHM.upper()}-{PROFICIENCY}",
+            repo_id=f"{HF_REPO}/{env_id}-v5-{ALGORITHM.upper()}-{PROFICIENCY}",
             commit_message="model",
         )
 
         print("FINISHED HF")
+
