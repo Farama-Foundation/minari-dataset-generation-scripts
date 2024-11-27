@@ -99,7 +99,7 @@ def check_qpos_qvel_shapes(dataset):
     assert len(qvel) == dataset.total_episodes, qvel_message
 
     for i, ep in enumerate(dataset):
-        num_steps = ep.total_timesteps + 1  # Same number of steps as observation
+        num_steps = len(ep) + 1  # Same number of steps as observation
         qpos_shape_message = (
             f"Expected infos/qpos (episode {i}) to have shape "
             f"{(num_steps, num_q)}, got {qpos[i].shape}"
