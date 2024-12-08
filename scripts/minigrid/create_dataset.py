@@ -7,6 +7,7 @@ from minigrid.wrappers import FullyObsWrapper
 import gymnasium as gym
 from gymnasium.spaces.text import alphanumeric
 from minari import DataCollector
+import json
 
 ENV_NAMES = [env_id for env_id in gym.registry if env_id.startswith("BabyAI")]
 
@@ -26,10 +27,8 @@ EXCLUDE_ENV = {
 }
 
 
-DESCRIPTION = """
-The dataset was generated using the expert bot from the BabyAI original repository and adapted to the latest version of the environment.
-The bot is a hard-coded planner, which solves all the tasks optimally.
-"""
+DESCRIPTION = """The dataset was generated using the expert bot from the BabyAI original repository and adapted to the latest version of the environment.
+The bot is a hard-coded planner, which solves all the tasks optimally."""
 
 for env_id in tqdm(ENV_NAMES):
     for type_ in {"optimal", "optimal-fullobs"}:
@@ -69,7 +68,7 @@ for env_id in tqdm(ENV_NAMES):
                 _, _, ter, tru, _ = env.step(action)
                 done = ter or tru
         
-        env.create_dataset(
+        ds = env.create_dataset(
             dataset_id=dataset_id,
             author="Omar G. Younis",
             author_email="omar@farama.org",
@@ -77,5 +76,15 @@ for env_id in tqdm(ENV_NAMES):
             description=DESCRIPTION,
             code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts"
         )
+
+        # fix minigrid not recording args
+        json_path = f"{ds.storage.data_path}/metadata.json"
+        with open(json_path, "r") as f:
+            metadata = json.load(f)
+            env_spec = metadata["env_spec"]
+            env_spec = env_spec.replace('"kwargs": null', '"kwargs": {}')
+            metadata["env_spec"] = env_spec
+        with open(json_path, "w") as f:
+            json.dump(metadata, f)
 
         env.close()
