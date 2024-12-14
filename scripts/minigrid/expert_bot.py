@@ -494,7 +494,7 @@ class ExploreSubgoal(Subgoal):
             self.bot.stack.append(GoNextToSubgoal(self.bot, door_obj, reason='Open'))
             return
 
-        assert False, "0nothing left to explore"
+        assert False, "nothing left to explore"
 
     def is_exploratory(self):
         return True
@@ -535,7 +535,6 @@ class Bot:
         self.stack = []
 
         # Process/parse the instructions
-        import pdb; pdb.set_trace()
         self._process_instr(mission.instrs)
 
         # How many BFS searches this bot has performed

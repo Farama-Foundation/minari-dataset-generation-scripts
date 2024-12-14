@@ -61,7 +61,7 @@ for env_id in tqdm(ENV_NAMES):
 
         for _ in range(EPISODE_NUM):
             obs, _ = env.reset()
-            bot = Bot(env)
+            bot = Bot(env.unwrapped)
             done = False
             while not done:
                 action = bot.replan()
@@ -74,7 +74,8 @@ for env_id in tqdm(ENV_NAMES):
             author_email="omar@farama.org",
             algorithm_name="BabyAI expert bot",
             description=DESCRIPTION,
-            code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts"
+            code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts",
+            requirements=["minigrid"]
         )
 
         # fix minigrid not recording args
