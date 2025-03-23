@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import warnings
 import gymnasium as gym
@@ -83,19 +84,20 @@ class Actor(nn.Module):
 
 def make_env(env_id):
     env = gym.make(env_id, repeat_action_probability=0, max_episode_steps=108000 // 4)
-    env = DataCollector(env)
-    env = gym.wrappers.ResizeObservation(env, (84, 84))
-    env = gym.wrappers.GrayScaleObservation(env)
-    env = gym.wrappers.FrameStack(env, 4)
-    return env
+    data_collector = DataCollector(env)
+    env = gym.wrappers.ResizeObservation(data_collector, (84, 84))
+    env = gym.wrappers.GrayscaleObservation(env)
+    env = gym.wrappers.FrameStackObservation(env, 4)
+    return env, data_collector
 
 
-def generate_dataset(env_id, num_episodes=10):
+def generate_dataset(env_id, num_episodes):
     env_id = env_id.replace("ALE/", "")
     exp_name = "cleanba_ppo_envpool_impala_atari_wrapper"
     model_path = hf_hub_download(repo_id=f"cleanrl/{env_id}-{exp_name}-seed1", filename=f"{exp_name}.cleanrl_model")
-
-    envs = make_env(f"ALE/{env_id}")
+    
+    print(f"Generating dataset for {env_id}...")
+    envs, data_collector = make_env(f"ALE/{env_id}")
     network = Network()
     actor = Actor(action_dim=envs.action_space.n)
     critic = Critic()
@@ -130,20 +132,21 @@ def generate_dataset(env_id, num_episodes=10):
     for _ in range(num_episodes):
         episodic_return = 0
         next_obs, _ = envs.reset()
-        terminated = False
+        done = False
 
-        while not terminated:
+        while not done:
             next_obs = jnp.array(next_obs)[None]
             actions, key = get_action_and_value(network_params, actor_params, next_obs, key)
-            next_obs, rew, terminated, _, infos = envs.step(int(np.array(actions[0])))
+            next_obs, rew, ter, tru, infos = envs.step(int(np.array(actions[0])))
             episodic_return += rew
+            done = ter or tru
         returns.append(episodic_return)
         
     print(f"Average return for {env_id}: {np.mean(returns)}")
     
     hf_url = f"https://huggingface.co/cleanrl/{env_id}-{exp_name}-seed1"
-    dataset = envs.create_dataset(
-        dataset_id=f"atari/{env_id[:-len('-v5')]}/cleanrl-ppo-v0",
+    dataset = data_collector.create_dataset(
+        dataset_id=f"atari/{env_id[:-len('-v5')].lower()}/expert-v0",
         author="Omar G. Younis",
         author_email="omar@farama.org",
         algorithm_name="CleanBA PPO Impala",
@@ -164,13 +167,13 @@ if __name__ == "__main__":
     ]
 
     for env_id in ENV_LIST:
-        if f"atari/{env_id[len('ALE/'):-len('-v5')]}/cleanrl-ppo-v0" in minari.list_remote_datasets(prefix="atari"):
+        if f"atari/{env_id[len('ALE/'):-len('-v5')].lower()}/expert-v0" in minari.list_remote_datasets(prefix="atari"):
             print(f"Dataset for {env_id} already exists. Skipping...")
             continue
         try:
-            dataset = generate_dataset(env_id, num_episodes=1)
+            dataset = generate_dataset(env_id, num_episodes=10)
 
-            minari.upload_dataset(dataset.spec.dataset_id, token=None)
+            minari.upload_dataset(dataset.spec.dataset_id, token=os.environ["HF_TOKEN"])
             minari.delete_dataset(dataset.spec.dataset_id)
         except RepositoryNotFoundError:
             warnings.warn(f"There is no model for {env_id} on CleanRL repo. Skipping...")
