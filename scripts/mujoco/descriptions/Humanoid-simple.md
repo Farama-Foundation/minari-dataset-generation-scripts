@@ -1,0 +1,1 @@
+The data is collected from the [Humanoid](https://gymnasium.farama.org/environments/mujoco/humanoid/) environment. The Agent was trained with [Stable Baselines 3](https://stable-baselines3.readthedocs.io/en/master/)'s implementation of `TQC` for $2 \cdot 10^6$ steps. This "simple" policy walks slowly by sliding its foot by while rarely falling over.

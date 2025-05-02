@@ -11,7 +11,13 @@ python upload_model.py --algo TQC --proficiency simple --environment HalfCheetah
 python upload_model.py --algo SAC --proficiency expert --environment Walker2d
 python upload_model.py --algo SAC --proficiency medium --environment Walker2d
 python upload_model.py --algo SAC --proficiency simple --environment Walker2d
-#TODO swimmer
+python upload_model.py --algo PPO --proficiency expert --environment Swimmer
+python upload_model.py --algo PPO --proficiency medium --environment Swimmer
 python upload_model.py --algo SAC --proficiency medium --environment Ant
 python upload_model.py --algo SAC --proficiency simple --environment Ant
-#TODO humanoids
+python upload_model.py --algo TQC --proficiency expert --environment Humanoid
+python upload_model.py --algo TQC --proficiency medium --environment Humanoid
+python upload_model.py --algo TQC --proficiency simple --environment Humanoid
+python upload_model.py --algo SAC --proficiency expert --environment HumanoidStandup
+python upload_model.py --algo SAC --proficiency medium --environment HumanoidStandup
+python upload_model.py --algo SAC --proficiency simple --environment HumanoidStandup
