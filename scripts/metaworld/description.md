@@ -1,0 +1,2 @@
+Dataset of the {env} environment, generated using the {policy} expert policy from the Metaworld library.
+For more details, see the Metaworld [documentation page](https://metaworld.farama.org/usage/basic_usage/#generate-data-with-expert-policies).
