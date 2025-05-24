@@ -12,44 +12,54 @@ from tqdm import tqdm
 
 from controller import WaypointController
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../checks")))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../checks"))
+)
 from check_maze_dataset import run_maze_checks
 
-R="r"
-G="g"
+R = "r"
+G = "g"
 
 # single-goal multi-reset location maps:
-EVAL_ENV_MAPS = {"open": [
-                [1, 1, 1, 1, 1, 1, 1],
-                [1, 0, 0, 0, 0, 0, 1],
-                [1, 0, 0, G, 0, 0, 1],
-                [1, 0, 0, 0, 0, 0, 1],
-                [1, 1, 1, 1, 1, 1, 1],],
-            "umaze": [[1, 1, 1, 1, 1],
-                [1, G, 0, 0, 1],
-                [1, 1, 1, 0, 1],
-                [1, 0, 0, 0, 1],
-                [1, 1, 1, 1, 1]], 
-            "medium": [[1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 0, 0, 1, 1, 0, 0, 1],
-                [1, 0, 0, 1, 0, 0, 0, 1],
-                [1, 1, 0, 0, 0, 1, 1, 1],
-                [1, 0, 0, 1, 0, 0, 0, 1],
-                [1, 0, 1, 0, 0, 1, 0, 1],
-                [1, 0, 0, 0, 1, 0, G, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1]],
-            "large": [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
-                [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-                [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
-                [1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1],
-                [1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1],
-                [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1],
-                [1, 0, 0, 1, 0, 0, 0, 1, 0, G, 0, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
-                }
+EVAL_ENV_MAPS = {
+    "open": [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, G, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ],
+    "umaze": [
+        [1, 1, 1, 1, 1],
+        [1, G, 0, 0, 1],
+        [1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1],
+    ],
+    "medium": [
+        [1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 1, 1, 0, 0, 1],
+        [1, 0, 0, 1, 0, 0, 0, 1],
+        [1, 1, 0, 0, 0, 1, 1, 1],
+        [1, 0, 0, 1, 0, 0, 0, 1],
+        [1, 0, 1, 0, 0, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, G, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1],
+    ],
+    "large": [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1],
+        [1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1],
+        [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1],
+        [1, 0, 0, 1, 0, 0, 0, 1, 0, G, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ],
+}
 
-DATASET_ID_TO_ENV_ID = {"D4RL/pointmaze/open-v2": "PointMaze_Open-v3", 
+DATASET_ID_TO_ENV_ID = {"D4RL/pointmaze/open-v2": "PointMaze_Open-v3",
                         "D4RL/pointmaze/open-dense-v2": "PointMaze_OpenDense-v3",
                         "D4RL/pointmaze/umaze-v2": "PointMaze_UMaze-v3",
                         "D4RL/pointmaze/umaze-dense-v2": "PointMaze_UMazeDense-v3",
@@ -61,18 +71,21 @@ DATASET_ID_TO_ENV_ID = {"D4RL/pointmaze/open-v2": "PointMaze_Open-v3",
 
 class PointMazeStepDataCallback(StepDataCallback):
     """Add environment state information to 'infos'.
-    
+
     Also, since the environment generates a new target every time it reaches a goal, the environment is
     never terminated or truncated. This callback overrides the truncation value to True when the step
-    returns a True 'succes' key in 'infos'. This way we can divide the Minari dataset into diferent trajectories.
+    returns a True 'success' key in 'info'. This way we can divide the Minari dataset into diferent trajectories.
     """
-    def __call__(self, env, obs, info, action=None, rew=None, terminated=None, truncated=None):
-        qpos = obs['observation'][:2]
-        qvel = obs['observation'][2:]
-        goal = obs['desired_goal']
-        
+
+    def __call__(
+        self, env, obs, info, action=None, rew=None, terminated=None, truncated=None
+    ):
+        qpos = obs["observation"][:2]
+        qvel = obs["observation"][2:]
+        goal = obs["desired_goal"]
+
         step_data = super().__call__(env, obs, info, action, rew, terminated, truncated)
-    
+
         if step_data['info']['success']:
             step_data['truncation'] = True
            
@@ -81,7 +94,7 @@ class PointMazeStepDataCallback(StepDataCallback):
         step_data['info']['goal'] = goal
         
         return step_data
-    
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -116,25 +129,29 @@ if __name__ == "__main__":
         default=None,
     )
     args = parser.parse_args()
-    
+
     for dataset_id, env_id in DATASET_ID_TO_ENV_ID.items():
         # Check if dataset already exist and load to add more data
         if dataset_id in minari.list_local_datasets():
             dataset = minari.load_dataset(dataset_id)
         else:
             dataset = None
-        
+
         # continuing task => the episode doesn't terminate or truncate when reaching a goal
         # it will generate a new target. For this reason we set the maximum episode steps to
         # the desired size of our Minari dataset (evade truncation due to time limit)
-        env = gym.make(env_id, continuing_task=True, reset_target=True, max_episode_steps=1e6)
-        
+        env = gym.make(
+            env_id, continuing_task=True, reset_target=True, max_episode_steps=1e6
+        )
+
         # Data collector wrapper to save temporary data while stepping. Characteristics:
-        #   * Custom StepDataCallback to add extra state information to 'infos' and divide dataset in different episodes by overridng 
+        #   * Custom StepDataCallback to add extra state information to 'infos' and divide dataset in different episodes by overridng
         #     truncation value to True when target is reached
         #   * Record the 'info' value of every step
-        #   * Record 100000 in in-memory buffers before dumpin everything to temporary file in disk       
-        collector_env = DataCollector(env, step_data_callback=PointMazeStepDataCallback, record_infos=True)
+        #   * Record 100000 in in-memory buffers before dumpin everything to temporary file in disk
+        collector_env = DataCollector(
+            env, step_data_callback=PointMazeStepDataCallback, record_infos=True
+        )
 
         seed = 123
         np.random.seed(seed)
@@ -148,7 +165,7 @@ if __name__ == "__main__":
         for n_step in tqdm(range(1_000_000)):
             action = waypoint_controller.compute_action(obs)
             # Add some noise to each step action
-            action += np.random.randn(*action.shape)*0.5
+            action += np.random.randn(*action.shape) * 0.5
             action = np.clip(action, -1, 1)
             obs, rew, terminated, truncated, info = collector_env.step(action)
 
@@ -174,6 +191,8 @@ if __name__ == "__main__":
 
         print(f"Checking {dataset_id}:")
         assert run_maze_checks(dataset, check_identical=False)
-        
+
         if args.upload_dataset:
-            minari.upload_dataset(dataset_id=args.dataset_name, path_to_private_key=args.path_to_private_key)
+            minari.upload_dataset(
+                dataset_id=dataset_id, path_to_private_key=args.path_to_private_key
+            )
