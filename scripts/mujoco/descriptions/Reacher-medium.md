@@ -1,0 +1,1 @@
+The data is collected from the [Reacher](https://gymnasium.farama.org/environments/mujoco/reacher/) environment. The Agent was trained with [Stable Baselines 3](https://stable-baselines3.readthedocs.io/en/master/)'s implementation of `SAC` for $200 \cdot 10^3$ steps. This "medium" policy is able to always reach the goal most of the time with medium speed.

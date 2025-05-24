@@ -1,0 +1,1 @@
+The data is collected from the [HalfCheetah](https://gymnasium.farama.org/environments/mujoco/half_cheetah/) environment. The Agent was trained with [Stable Baselines 3](https://stable-baselines3.readthedocs.io/en/master/)'s implementation of `TQC` for $25 \cdot 10^6$ steps. This "expert" policy runs very fast, in a natural looking motion, while never falling over.

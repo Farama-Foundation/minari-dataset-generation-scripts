@@ -1,0 +1,8 @@
+stable_baselines3==2.4.1
+sb3_contrib
+gymnasium[mujoco, other]==1.0.0
+mujoco==3.1.5
+wandb==0.18.7
+minari[hdf5,create]==0.5.2
+huggingface_sb3==3.1  # note this version does not support rendering videos
+tensorboard==2.18.0

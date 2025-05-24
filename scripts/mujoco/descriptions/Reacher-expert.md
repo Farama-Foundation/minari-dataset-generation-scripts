@@ -1,0 +1,1 @@
+The data is collected from the [Reacher](https://gymnasium.farama.org/environments/mujoco/reacher/) environment. The Agent was trained with [Stable Baselines 3](https://stable-baselines3.readthedocs.io/en/master/)'s implementation of `SAC` for $10 \cdot 10^6$ steps. This "expert" policy is able to always reach the goal quickly.

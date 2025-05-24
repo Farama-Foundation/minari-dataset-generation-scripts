@@ -1,0 +1,1 @@
+The data is collected from the [Hopper](https://gymnasium.farama.org/environments/mujoco/hopper/) environment. The Agent was trained with `Stable Baselines 3`'s implementation of [SAC](https://stable-baselines3.readthedocs.io/en/master/) for $10^6$ steps. This "simple" policy hops slowly, while remaining mostly upright.

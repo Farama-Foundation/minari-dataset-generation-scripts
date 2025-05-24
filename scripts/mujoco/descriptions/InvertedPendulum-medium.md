@@ -1,0 +1,1 @@
+The data is collected from the [InvertedPendulum](https://gymnasium.farama.org/environments/mujoco/inverted_pendulum/) environment. The Agent was trained with [Stable Baselines 3](https://stable-baselines3.readthedocs.io/en/master/)'s implementation of `SAC` for $10 \cdot 10^3$ steps. This "medium" policy is able to keep the pole balanced for around 100 steps.

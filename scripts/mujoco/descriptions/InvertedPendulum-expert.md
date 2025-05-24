@@ -1,0 +1,1 @@
+The data is collected from the [InvertedPendulum](https://gymnasium.farama.org/environments/mujoco/inverted_pendulum/) environment. The Agent was trained with [Stable Baselines 3](https://stable-baselines3.readthedocs.io/en/master/)'s implementation of `SAC` for $10^6$ steps. This "expert" policy is considered solved, able to never fall.

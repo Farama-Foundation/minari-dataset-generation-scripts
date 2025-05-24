@@ -1,11 +1,13 @@
 import argparse
 import os
+from pathlib import Path
 import sys
 
 import gymnasium as gym
 import minari
 import numpy as np
 from minari import DataCollector, StepDataCallback
+from minari.dataset.minari_dataset import parse_dataset_id
 from tqdm import tqdm
 
 from controller import WaypointController
@@ -57,17 +59,15 @@ EVAL_ENV_MAPS = {
     ],
 }
 
-DATASET_ID_TO_ENV_ID = {
-    "D4RL/pointmaze/open-v2": "PointMaze_Open-v3",
-    "D4RL/pointmaze/open-dense-v2": "PointMaze_OpenDense-v3",
-    "D4RL/pointmaze/umaze-v2": "PointMaze_UMaze-v3",
-    "D4RL/pointmaze/umaze-dense-v2": "PointMaze_UMazeDense-v3",
-    "D4RL/pointmaze/medium-v2": "PointMaze_Medium-v3",
-    "D4RL/pointmaze/medium-dense-v2": "PointMaze_MediumDense-v3",
-    "D4RL/pointmaze/large-v2": "PointMaze_Large-v3",
-    "D4RL/pointmaze/large-dense-v2": "PointMaze_LargeDense-v3",
-}
-
+DATASET_ID_TO_ENV_ID = {"D4RL/pointmaze/open-v2": "PointMaze_Open-v3",
+                        "D4RL/pointmaze/open-dense-v2": "PointMaze_OpenDense-v3",
+                        "D4RL/pointmaze/umaze-v2": "PointMaze_UMaze-v3",
+                        "D4RL/pointmaze/umaze-dense-v2": "PointMaze_UMazeDense-v3",
+                        "D4RL/pointmaze/medium-v2": "PointMaze_Medium-v3",
+                        "D4RL/pointmaze/medium-dense-v2": "PointMaze_MediumDense-v3",
+                        "D4RL/pointmaze/large-v2": "PointMaze_Large-v3",
+                        "D4RL/pointmaze/large-dense-v2": "PointMaze_LargeDense-v3"
+                    }
 
 class PointMazeStepDataCallback(StepDataCallback):
     """Add environment state information to 'infos'.
@@ -86,13 +86,13 @@ class PointMazeStepDataCallback(StepDataCallback):
 
         step_data = super().__call__(env, obs, info, action, rew, terminated, truncated)
 
-        if step_data["info"]["success"]:
-            step_data["truncation"] = True
-
-        step_data["info"]["qpos"] = qpos
-        step_data["info"]["qvel"] = qvel
-        step_data["info"]["goal"] = goal
-
+        if step_data['info']['success']:
+            step_data['truncation'] = True
+           
+        step_data['info']['qpos'] = qpos
+        step_data['info']['qvel'] = qvel
+        step_data['info']['goal'] = goal
+        
         return step_data
 
 
@@ -137,7 +137,6 @@ if __name__ == "__main__":
         else:
             dataset = None
 
-        env_key = dataset_id.split("/")[-1].split("-")[0]
         # continuing task => the episode doesn't terminate or truncate when reaching a goal
         # it will generate a new target. For this reason we set the maximum episode steps to
         # the desired size of our Minari dataset (evade truncation due to time limit)
@@ -170,35 +169,25 @@ if __name__ == "__main__":
             action = np.clip(action, -1, 1)
             obs, rew, terminated, truncated, info = collector_env.step(action)
 
-            if (n_step + 1) % 200000 == 0:
-                if dataset is None:
-                    eval_env_id = env.spec.id
-                    eval_env = gym.make(
-                        eval_env_id,
-                        maze_map=EVAL_ENV_MAPS[env_key],
-                        continuing_task=True,
-                        reset_target=False,
-                    )
-                    eval_waypoint_controller = WaypointController(eval_env.maze)
-                    dataset = collector_env.create_dataset(
-                        dataset_id=dataset_id,
-                        eval_env=eval_env,
-                        expert_policy=eval_waypoint_controller.compute_action,
-                        algorithm_name=args.maze_solver,
-                        code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts",
-                        author=args.author,
-                        author_email=args.author_email,
-                    )
+        eval_env_id = env.spec.id
+        _, dataset_name, _ = parse_dataset_id(dataset_id)
+        eval_env = gym.make(eval_env_id, maze_map=EVAL_ENV_MAPS[dataset_name.split('-')[0]],
+                            continuing_task=True,
+                            reset_target=False)
+        eval_waypoint_controller = WaypointController(eval_env.maze)
+        dataset = collector_env.create_dataset(
+            dataset_id=dataset_id,
+            eval_env=eval_env,
+            expert_policy=eval_waypoint_controller.compute_action,
+            algorithm_name=args.maze_solver,
+            code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts",
+            author=args.author,
+            author_email=args.author_email,
+            description=Path(__file__).parent.joinpath('description.md').read_text().format(env_id=env_id),
+            requirements=["gymnasium-robotics>=1.2.3"]
+        )
 
-                    eval_env.close()
-                else:
-                    # Update local Minari dataset every 200000 steps.
-                    # This works as a checkpoint to not lose the already collected data
-                    collector_env.add_to_dataset(dataset)
-
-                seed += 1
-                np.random.seed(seed)
-                obs, _ = collector_env.reset(seed=seed)
+        eval_env.close()
 
         print(f"Checking {dataset_id}:")
         assert run_maze_checks(dataset, check_identical=False)

@@ -1,3 +1,0 @@
-gymnasium-robotics
-minari
-tqdm

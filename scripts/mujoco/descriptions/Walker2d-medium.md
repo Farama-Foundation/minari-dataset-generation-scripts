@@ -1,0 +1,1 @@
+The data is collected from the [Walker2d](https://gymnasium.farama.org/environments/mujoco/walker2d/) environment. The Agent was trained with [Stable Baselines 3[(https://stable-baselines3.readthedocs.io/en/master/)'s implementation of `SAC` for $6 \cdot 10^6$ steps. This "medium" policy walks quickly, in a natural looking motion, while remaining upright.
