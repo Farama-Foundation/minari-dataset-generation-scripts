@@ -1,9 +1,10 @@
 import gymnasium as gym
 import minari
 import numpy as np
+from math import floor
 from huggingface_sb3 import load_from_hub
 from huggingface_hub.utils import EntryNotFoundError
-from minari import StepDataCallback
+from minari import StepDataCallback, MinariDataset
 from sb3_contrib import ARS, TQC, TRPO
 from stable_baselines3 import PPO, SAC, TD3
 from tqdm import tqdm
@@ -20,17 +21,17 @@ Each tuple contains:
     - (Optional) Observation size (int): The size of the observation space if excluded elements are added via AddExcludedObservationElements callback.
 """
 ENV_IDS = [
-    ("InvertedPendulum", ("expert", "random", "medium"), 100_000, "SAC"),
-    ("InvertedDoublePendulum", ("expert", "random", "medium"), 100_000, "SAC"),
-    ("Reacher", ("expert", "random", "medium"), 500_000, "SAC"),
-    ("Pusher", ("expert", "random", "medium"), 500_000, "SAC"),
-    ("HalfCheetah", ("expert", "random", "simple", "medium"), 1_000_000, "TQC"),
-    ("Hopper", ("expert", "random", "simple", "medium"), 1_000_000, "SAC"),
-    ("Walker2d", ("expert", "random", "simple", "medium"), 1_000_000, "SAC"),
-    ("Swimmer", ("expert", "random", "medium"), 1_000_000, "PPO"),
-    ("Ant", ("expert", "random", "simple", "medium"), 1_000_000, "SAC"),
-    ("Humanoid", ("expert", "random", "simple", "medium"), 1_000_000, "TQC"),
-    ("HumanoidStandup", ("expert", "random", "simple", "medium"), 1_000_000, "SAC", 348),
+    ("InvertedPendulum", ("expert", "random", "medium", "medium-expert"), 100_000, "SAC"),
+    ("InvertedDoublePendulum", ("expert", "random", "medium", "medium-expert"), 100_000, "SAC"),
+    ("Reacher", ("expert", "random", "medium", "medium-expert"), 500_000, "SAC"),
+    ("Pusher", ("expert", "random", "medium", "medium-expert"), 500_000, "SAC"),
+    ("HalfCheetah", ("expert", "random", "simple", "medium", "medium-expert"), 1_000_000, "TQC"),
+    ("Hopper", ("expert", "random", "simple", "medium", "medium-expert"), 1_000_000, "SAC"),
+    ("Walker2d", ("expert", "random", "simple", "medium", "medium-expert"), 1_000_000, "SAC"),
+    ("Swimmer", ("expert", "random", "medium", "medium-expert"), 1_000_000, "PPO"),
+    ("Ant", ("expert", "random", "simple", "medium", "medium-expert"), 1_000_000, "SAC"),
+    ("Humanoid", ("expert", "random", "simple", "medium", "medium-expert"), 1_000_000, "TQC"),
+    ("HumanoidStandup", ("expert", "random", "simple", "medium", "medium-expert"), 1_000_000, "SAC", 348),
 ]
 
 DATASET_VERSION = "v2"
@@ -126,6 +127,26 @@ def load_policy(env_id: str, algo: str, proficiency: str):
 
     return lambda x: policy.predict(x)[0]
 
+def find_nth_step(dataset, n):
+    ep_i = 0
+    for ep_i, ep in enumerate(dataset):
+        n -= len(ep)
+        if n <= 0.0:
+            break
+    return ep_i # TODO: Check off-by-one here and in slicing
+
+
+# TODO: Work out appropriate proportion!
+def mix_datasets(dataset_1, dataset_2, new_dataset_id, proportion=0.5):
+    # Split proportionally by number of steps rather than number of episodes (minari.split_dataset)
+    total_steps = dataset_1.total_steps + dataset_2.total_steps
+    split_step = floor(proportion * total_steps)
+    end_idx_1 = find_nth_step(dataset_1, split_step)
+    end_idx_2 = find_nth_step(dataset_2, total_steps - split_step)
+    dataset_1_part = MinariDataset(dataset_1.spec.data_path, range(end_idx_1))
+    dataset_2_part = MinariDataset(dataset_2.spec.data_path, range(end_idx_2))
+    return minari.combine_datasets([dataset_1_part, dataset_2_part], new_dataset_id)
+
 
 if __name__ == "__main__":
     for env_run_spec in ENV_IDS:
@@ -148,27 +169,34 @@ if __name__ == "__main__":
             if f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}" in minari.list_local_datasets():
                 print(f"\nSkipping {proficiency.upper()} DATASET FOR {env_id}")
                 continue
-            print(f"\nCREATING {proficiency.upper()} DATASET FOR {env_id}")
-            env = make_env(env_id, render_mode=None, use_monitor_wrapper=False)
-            env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
-            if add_excluded_obs:
-                env = minari.DataCollector(
-                    env,
-                    step_data_callback=AddExcludedObservationElements,
-                    observation_space=gym.spaces.Box(-np.inf, np.inf, (observation_size,), np.float64),
-                    record_infos=False,
-                )
-            else:
-                env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
 
-            policy = load_policy(env_id, algo, proficiency)
-            dataset, ref_min_score, ref_max_score = create_dataset_from_policy(
-                env_id,
-                proficiency,
-                env,
-                policy,
-                n_steps,
-                algo,
-                ref_min_score,
-                ref_max_score,
-            )
+            if proficiency == "medium-expert":
+                expert_dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/expert-{DATASET_VERSION}")
+                medium_dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/medium-{DATASET_VERSION}")
+                new_dataset_id=f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}"
+                minari.combine_datasets([medium_dataset, expert_dataset], new_dataset_id)
+            else:
+                print(f"\nCREATING {proficiency.upper()} DATASET FOR {env_id}")
+                env = make_env(env_id, render_mode=None, use_monitor_wrapper=False)
+                env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
+                if add_excluded_obs:
+                    env = minari.DataCollector(
+                        env,
+                        step_data_callback=AddExcludedObservationElements,
+                        observation_space=gym.spaces.Box(-np.inf, np.inf, (observation_size,), np.float64),
+                        record_infos=False,
+                    )
+                else:
+                    env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
+
+                policy = load_policy(env_id, algo, proficiency)
+                dataset, ref_min_score, ref_max_score = create_dataset_from_policy(
+                    env_id,
+                    proficiency,
+                    env,
+                    policy,
+                    n_steps,
+                    algo,
+                    ref_min_score,
+                    ref_max_score,
+                )
