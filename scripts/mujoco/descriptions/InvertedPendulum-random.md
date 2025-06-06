@@ -1,1 +1,1 @@
-The data is collected from the [InvertedPendulum](https://gymnasium.farama.org/environments/mujoco/inverted_pendulum/) environment. The Agent was trained with a random policy for $10 \cdot 10^3$ steps.
+The data is collected from the [InvertedPendulum](https://gymnasium.farama.org/environments/mujoco/inverted_pendulum/) environment. The Agent was trained with a random policy.

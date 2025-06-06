@@ -1,1 +1,1 @@
-The data is collected from the [Swimmer](https://gymnasium.farama.org/environments/mujoco/swimmer/) environment. The Agent was trained with a random policy for $300 \cdot 10^3$ steps with a learning rate of $\gamma = 1$ because of ["Making reinforcement learning work on swimmer"](https://arxiv.org/abs/2208.07587).
+The data is collected from the [Swimmer](https://gymnasium.farama.org/environments/mujoco/swimmer/) environment. The Agent was trained with a random policy.
