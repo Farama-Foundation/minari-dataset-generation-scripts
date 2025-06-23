@@ -22,7 +22,7 @@ def gen_gamma(env_id: str) -> float:
     return 0.99
 
 
-def initialize_model(algo_name: str, env_id: str, env: gym.Env, policy: str, seed: int):
+def initialize_model(algo_name: str, env_id: str, env: gym.Env, policy: str, seed: int, device: str = "cpu"):
     if algo_name == "sac":
         model = SAC(
             policy,
@@ -32,6 +32,7 @@ def initialize_model(algo_name: str, env_id: str, env: gym.Env, policy: str, see
             gamma=gen_gamma(env_id),
             use_sde=False,
             seed=seed,
+            device=device,
         )
     elif algo_name == "td3":
         model = TD3(
@@ -41,6 +42,7 @@ def initialize_model(algo_name: str, env_id: str, env: gym.Env, policy: str, see
             learning_starts=10_000,
             gamma=gen_gamma(env_id),
             seed=seed,
+            device=device,
         )
     elif algo_name == "ppo":
         model = PPO(
@@ -50,7 +52,7 @@ def initialize_model(algo_name: str, env_id: str, env: gym.Env, policy: str, see
             gamma=gen_gamma(env_id),
             seed=seed,
             ent_coef=5e-6,
-            device="cpu",
+            device=device,
         )
     elif algo_name == "tqc":
         model = TQC(
@@ -59,7 +61,7 @@ def initialize_model(algo_name: str, env_id: str, env: gym.Env, policy: str, see
             tensorboard_log=f"runs/{0}",
             gamma=gen_gamma(env_id),
             seed=seed,
-            device="cpu",
+            device=device,
         )
     elif algo_name == "trpo":
         model = TRPO(
@@ -68,7 +70,7 @@ def initialize_model(algo_name: str, env_id: str, env: gym.Env, policy: str, see
             tensorboard_log=f"runs/{0}",
             gamma=gen_gamma(env_id),
             seed=seed,
-            device="cpu",
+            device=device,
         )
     elif algo_name == "ars":
         model = ARS(
@@ -79,7 +81,7 @@ def initialize_model(algo_name: str, env_id: str, env: gym.Env, policy: str, see
             n_delta=1,
             n_top=1,
             seed=seed,
-            device="cpu",
+            device=device,
         )
     elif algo_name == "her-sac":
         model = SAC(
@@ -90,6 +92,7 @@ def initialize_model(algo_name: str, env_id: str, env: gym.Env, policy: str, see
             gamma=gen_gamma(env_id),
             use_sde=False,
             seed=seed,
+            device=device,
             replay_buffer_class=HerReplayBuffer,
             replay_buffer_kwargs=dict(
                 n_sampled_goal=4,

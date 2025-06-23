@@ -36,7 +36,7 @@ ENV_IDS = [
     ("HumanoidStandup", ("expert", "random", "simple", "medium", "medium-expert", "simple-replay"), 1_000_000, "SAC", 348),
 ]
 
-DATASET_VERSION = "v2"
+DATASET_VERSION = "v1"
 
 
 class AddExcludedObservationElements(StepDataCallback):
@@ -75,8 +75,8 @@ def collect_data_from_policy(collector_env, policy, n_steps: int):
 def collect_replay_data(env, env_id, algo, proficiency, seed):
     # Note: Unlike the reference policies, we train without parallel environments for replay datasets
     env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
-    model = initialize_model(algo.lower(), env_id, env, "MlpPolicy", seed)
-    model.learn(total_timesteps=TIMESTEPS[f"{env_id}-{proficiency[:-7]}"], log_interval=2)
+    model = initialize_model(algo.lower(), env_id, env, "MlpPolicy", seed, device="cuda")
+    model.learn(total_timesteps=TIMESTEPS[f"{env_id}-{proficiency[:-7]}"], progress_bar=True)
     return lambda x: model.predict(x)[0]
 
 
@@ -110,6 +110,32 @@ def load_policy(env_id: str, algo: str, proficiency: str):
     return lambda x: policy.predict(x)[0]
 
 
+def get_expert_ref_min_max(env_id):
+    dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/expert-{DATASET_VERSION}")
+    ref_min_score = dataset.storage.metadata["ref_min_score"]
+    ref_max_score = dataset.storage.metadata["ref_max_score"]
+    return ref_min_score, ref_max_score
+
+
+def create_medium_expert_mixture_dataset(env_id, proficiency):
+    common_keys = ["code_permalink", "algorithm_name", "ref_max_score", "ref_min_score", "num_episodes_average_score", "requirements"]
+    expert_dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/expert-{DATASET_VERSION}")
+    medium_dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/medium-{DATASET_VERSION}")
+    new_dataset_id=f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}"
+
+    combined_metadata = {
+        "description": open(f"./descriptions/{env_id}-{proficiency}.md", "r").read()
+    }
+
+    for key in common_keys:
+        assert expert_dataset.storage[key] == medium_dataset.storage[key]
+        combined_metadata[key] = expert_dataset.storage[key]
+
+    new_dataset = minari.combine_datasets([medium_dataset, expert_dataset], new_dataset_id)
+    new_dataset.storage.update_metadata(combined_metadata)
+    return new_dataset
+
+
 if __name__ == "__main__":
     for env_run_spec in ENV_IDS:
         # unpack dataset spec
@@ -135,11 +161,7 @@ if __name__ == "__main__":
             print(f"\nCREATING {proficiency.upper()} DATASET FOR {env_id}")
 
             if proficiency == "medium-expert":
-                # Mixture datasets
-                expert_dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/expert-{DATASET_VERSION}")
-                medium_dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/medium-{DATASET_VERSION}")
-                new_dataset_id=f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}"
-                minari.combine_datasets([medium_dataset, expert_dataset], new_dataset_id)
+                create_medium_expert_mixture_dataset(env_id, proficiency)
             else:
                 # Standard datasets
                 env = make_env(env_id, render_mode=None, use_monitor_wrapper=False)
@@ -154,13 +176,19 @@ if __name__ == "__main__":
                 else:
                     env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
 
-                if "medium-replay" in proficiency:
+                if "replay" in proficiency:
                     policy = collect_replay_data(env, env_id, algo, proficiency, seed=123)
                 else:
                     policy = load_policy(env_id, algo, proficiency)
                     collect_data_from_policy(env, policy, n_steps)
 
-                is_expert = (proficiency == "expert")
+                if proficiency == "expert":
+                    expert_policy = policy
+                    ref_min_score, ref_max_score = None, None
+                else:
+                    expert_policy = None
+                    ref_min_score, ref_max_score = get_expert_ref_min_max(env_id)
+
                 dataset = env.create_dataset(
                     dataset_id=f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}",
                     algorithm_name=f"sb3/{algo}",
@@ -169,9 +197,7 @@ if __name__ == "__main__":
                     author_email="kallinteris@protonmail.com",
                     requirements=["mujoco==3.2.3", "gymnasium>=1.0.0"],
                     description=open(f"./descriptions/{env_id}-{proficiency}.md", "r").read(),
-                    ref_min_score=None if is_expert else ref_min_score,
-                    ref_max_score=None if is_expert else ref_max_score,
-                    expert_policy=policy if is_expert else None,
+                    ref_min_score=ref_min_score,
+                    ref_max_score=ref_max_score,
+                    expert_policy=expert_policy,
                 )
-                ref_min_score = dataset.storage.metadata["ref_min_score"]
-                ref_max_score = dataset.storage.metadata["ref_max_score"]
