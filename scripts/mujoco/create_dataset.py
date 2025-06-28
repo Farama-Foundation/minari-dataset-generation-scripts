@@ -36,7 +36,7 @@ ENV_IDS = [
     ("HumanoidStandup", ("expert", "random", "simple", "medium", "medium-expert", "simple-replay"), 1_000_000, "SAC", 348),
 ]
 
-DATASET_VERSION = "v1"
+DATASET_VERSION = "v0"
 
 
 class AddExcludedObservationElements(StepDataCallback):
@@ -128,8 +128,8 @@ def create_medium_expert_mixture_dataset(env_id, proficiency):
     }
 
     for key in common_keys:
-        assert expert_dataset.storage[key] == medium_dataset.storage[key]
-        combined_metadata[key] = expert_dataset.storage[key]
+        assert expert_dataset.storage.metadata[key] == medium_dataset.storage.metadata[key]
+        combined_metadata[key] = expert_dataset.storage.metadata[key]
 
     new_dataset = minari.combine_datasets([medium_dataset, expert_dataset], new_dataset_id)
     new_dataset.storage.update_metadata(combined_metadata)
