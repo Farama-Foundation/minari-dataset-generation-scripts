@@ -74,7 +74,6 @@ def collect_data_from_policy(collector_env, policy, n_steps: int):
 
 def collect_replay_data(env, env_id, algo, proficiency, seed):
     # Note: Unlike the reference policies, we train without parallel environments for replay datasets
-    env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
     model = initialize_model(algo.lower(), env_id, env, "MlpPolicy", seed, device="cuda")
     model.learn(total_timesteps=TIMESTEPS[f"{env_id}-{proficiency[:-7]}"], progress_bar=True)
     return lambda x: model.predict(x)[0]
@@ -161,9 +160,10 @@ if __name__ == "__main__":
             print(f"\nCREATING {proficiency.upper()} DATASET FOR {env_id}")
 
             if proficiency == "medium-expert":
+                # Mixture datasets
                 create_medium_expert_mixture_dataset(env_id, proficiency)
             else:
-                # Standard datasets
+                # Standard + replay datasets
                 env = make_env(env_id, render_mode=None, use_monitor_wrapper=False)
                 env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
                 if add_excluded_obs:
