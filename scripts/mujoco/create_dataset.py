@@ -1,4 +1,5 @@
 import gymnasium as gym
+from gymnasium.wrappers import TransformObservation
 import minari
 import numpy as np
 from math import floor
@@ -57,6 +58,7 @@ class AddExcludedObservationElements(StepDataCallback):
 
         return step_data
 
+
 def collect_data_from_policy(collector_env, policy, n_steps: int):
     truncated = True
     terminated = True
@@ -72,7 +74,12 @@ def collect_data_from_policy(collector_env, policy, n_steps: int):
         obs, _, terminated, truncated, _ = env.step(action)
 
 
-def collect_replay_data(env, env_id, algo, proficiency, seed):
+def collect_replay_data(env, env_id, algo, proficiency, seed, obs_size=None):
+    # Restrict obs, for HumanoidStandup
+    if obs_size is not None:
+        restricted_obs_space = gym.spaces.Box(-np.inf, np.inf, (obs_size,), np.float64)
+        env = TransformObservation(env, lambda obs: obs[:obs_size], restricted_obs_space)
+
     # Note: Unlike the reference policies, we train without parallel environments for replay datasets
     model = initialize_model(algo.lower(), env_id, env, "MlpPolicy", seed, device="cuda")
     model.learn(total_timesteps=TIMESTEPS[f"{env_id}-{proficiency[:-7]}"], progress_bar=True)
@@ -80,8 +87,10 @@ def collect_replay_data(env, env_id, algo, proficiency, seed):
 
 
 def load_policy(env_id: str, algo: str, proficiency: str):
+    env = make_env(env_id)
+    obs_size = env.observation_space.shape[0]
+
     if proficiency == "random":
-        env = make_env(env_id)
         return lambda _: env.action_space.sample()
 
     repo_id = f"farama-minari/{env_id}-v5-{algo.upper()}-{proficiency}"
@@ -94,8 +103,6 @@ def load_policy(env_id: str, algo: str, proficiency: str):
     except EntryNotFoundError:
         model_checkpoint = load_from_hub(repo_id, filename_lower)
 
-    print("LOADING", filename_upper)
-
     match algo:
         case "SAC":
             policy = SAC.load(model_checkpoint)
@@ -106,7 +113,8 @@ def load_policy(env_id: str, algo: str, proficiency: str):
         case "TQC":
             policy = TQC.load(model_checkpoint)
 
-    return lambda x: policy.predict(x)[0]
+    # Restrict observation to original env size, for HumanoidStandup
+    return lambda x: policy.predict(x[:obs_size])[0]
 
 
 def get_expert_ref_min_max(env_id):
@@ -145,16 +153,12 @@ if __name__ == "__main__":
         add_excluded_obs = len(env_run_spec) == 5
         observation_size = env_run_spec[4] if add_excluded_obs else None
 
-        # Populated by expert dataset runs
-        ref_min_score = None
-        ref_max_score = None
-
         # make datasets
         for proficiency in proficiencies:
-            if env_id == "HumanoidStandup":
-                continue
-            if f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}" in minari.list_local_datasets():
-                print(f"\nSkipping {proficiency.upper()} DATASET FOR {env_id}")
+            dataset_id = f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}"
+
+            if dataset_id in minari.list_local_datasets():
+                print(f"\nSKIPPING {proficiency.upper()} DATASET FOR {env_id}")
                 continue
 
             print(f"\nCREATING {proficiency.upper()} DATASET FOR {env_id}")
@@ -167,6 +171,7 @@ if __name__ == "__main__":
                 env = make_env(env_id, render_mode=None, use_monitor_wrapper=False)
                 env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
                 if add_excluded_obs:
+                    restricted_obs_size = env.observation_space.shape[0]
                     env = minari.DataCollector(
                         env,
                         step_data_callback=AddExcludedObservationElements,
@@ -174,10 +179,18 @@ if __name__ == "__main__":
                         record_infos=False,
                     )
                 else:
+                    restricted_obs_size = None
                     env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
 
                 if "replay" in proficiency:
-                    policy = collect_replay_data(env, env_id, algo, proficiency, seed=123)
+                    policy = collect_replay_data(
+                        env=env,
+                        env_id=env_id,
+                        algo=algo,
+                        proficiency=proficiency,
+                        seed=123,
+                        obs_size=restricted_obs_size
+                    )
                 else:
                     policy = load_policy(env_id, algo, proficiency)
                     collect_data_from_policy(env, policy, n_steps)
@@ -190,7 +203,7 @@ if __name__ == "__main__":
                     ref_min_score, ref_max_score = get_expert_ref_min_max(env_id)
 
                 dataset = env.create_dataset(
-                    dataset_id=f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}",
+                    dataset_id=dataset_id,
                     algorithm_name=f"sb3/{algo}",
                     code_permalink="https://github.com/farama-foundation/minari-dataset-generation-scripts",
                     author="kallinteris andreas",

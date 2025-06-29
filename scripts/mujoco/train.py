@@ -119,16 +119,14 @@ if __name__ == "__main__":
     ALGORITHM = args.algo.lower()
     PROFICIENCY = args.proficiency
     SB3_POLICY = args.policy
-    # assert PROFICIENCY in ["simple", "medium", "expert"]
     TIMESTEPS = args.timesteps
     EVAL_ENVS = 50
     EVAL_FREQ = 1000
     RUNS = 1
 
+    # assert PROFICIENCY in ["simple", "medium", "expert"]
     # ENV_LIST = ["HalfCheetah", "Ant", "Hopper", "Walker2d", "InvertedPendulum", "InvertedDoublePendulum", "Reacher", "Pusher", "Swimmer", "Humanoid", "HumanoidStandup"]
-    ENV_LIST = [
-        args.env_id,
-    ]
+    ENV_LIST = [args.env_id]
 
     print(f"Training {ENV_LIST}/{PROFICIENCY} - {ALGORITHM}/{TIMESTEPS}")
 
