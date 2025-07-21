@@ -1,12 +1,17 @@
 import gymnasium as gym
+from gymnasium.wrappers import TransformObservation
 import minari
 import numpy as np
+from math import floor
 from huggingface_sb3 import load_from_hub
-from minari import StepDataCallback
+from huggingface_hub.utils import EntryNotFoundError
+from minari import StepDataCallback, MinariDataset
 from sb3_contrib import ARS, TQC, TRPO
 from stable_baselines3 import PPO, SAC, TD3
 from tqdm import tqdm
 
+from config import TIMESTEPS
+from train import initialize_model
 from make_env import make_env
 
 """
@@ -19,20 +24,22 @@ Each tuple contains:
     - (Optional) Observation size (int): The size of the observation space if excluded elements are added via AddExcludedObservationElements callback.
 """
 ENV_IDS = [
-    ("InvertedPendulum", ("medium", "expert"), 100_000, "SAC"),
-    ("InvertedDoublePendulum", ("medium", "expert"), 100_000, "SAC"),
-    ("Reacher", ("medium", "expert"), 500_000, "SAC"),
-    ("Pusher", ("medium", "expert"), 500_000, "SAC"),
-    ("HalfCheetah", ("simple", "medium", "expert"), 1_000_000, "TQC"),
-    ("Hopper", ("simple", "medium", "expert"), 1_000_000, "SAC"),
-    ("Walker2d", ("simple", "medium", "expert"), 1_000_000, "SAC"),
-    ("Swimmer", ("medium", "expert"), 1_000_000, "PPO"),
-    ("Ant", ("simple", "medium"), 1_000_000, "SAC"),
-    ("Humanoid", ("simple", "medium", "expert"), 1_000_000, "TQC"),
-    ("HumanoidStandup", ("simple", "medium", "expert"), 1_000_000, "SAC", 348),
+    ("InvertedPendulum", ("expert", "random", "medium", "medium-expert", "medium-replay"), 100_000, "SAC"),
+    ("InvertedDoublePendulum", ("expert", "random", "medium", "medium-expert", "medium-replay"), 100_000, "SAC"),
+    ("Reacher", ("expert", "random", "medium", "medium-expert", "medium-replay"), 500_000, "SAC"),
+    ("Pusher", ("expert", "random", "medium", "medium-expert", "medium-replay"), 500_000, "SAC"),
+    ("HalfCheetah", ("expert", "random", "simple", "medium", "medium-expert", "simple-replay"), 1_000_000, "TQC"),
+    ("Hopper", ("expert", "random", "simple", "medium", "medium-expert", "simple-replay"), 1_000_000, "SAC"),
+    ("Walker2d", ("expert", "random", "simple", "medium", "medium-expert", "simple-replay"), 1_000_000, "SAC"),
+    ("Swimmer", ("expert", "random", "medium", "medium-expert", "medium-replay"), 1_000_000, "PPO"),
+    ("Ant", ("expert", "random", "simple", "medium", "medium-expert", "simple-replay"), 1_000_000, "SAC"),
+    ("Humanoid", ("expert", "random", "simple", "medium", "medium-expert", "simple-replay"), 1_000_000, "TQC"),
+    ("HumanoidStandup", ("expert", "random", "simple", "medium", "medium-expert", "simple-replay"), 1_000_000, "SAC", 348),
 ]
 
 DATASET_VERSION = "v0"
+AUTHOR = {"kallinteris andreas", "Alex Davey"}
+AUTHOR_EMAIL = {"kallinteris@protonmail.com", "alexdavey0@gmail.com"}
 
 
 class AddExcludedObservationElements(StepDataCallback):
@@ -54,7 +61,7 @@ class AddExcludedObservationElements(StepDataCallback):
         return step_data
 
 
-def create_dataset_from_policy(env_id, proficiency, collector_env, policy, n_steps: int, algorithm_name):
+def collect_data_from_policy(collector_env, policy, n_steps: int):
     truncated = True
     terminated = True
     seed = 123
@@ -68,22 +75,35 @@ def create_dataset_from_policy(env_id, proficiency, collector_env, policy, n_ste
         action = policy(obs)
         obs, _, terminated, truncated, _ = env.step(action)
 
-    return collector_env.create_dataset(
-        dataset_id=f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}",
-        algorithm_name=f"SB3/{algorithm_name}",
-        code_permalink="https://github.com/Farama-Foundation/minari-dataset-generation-scripts",
-        author="Kallinteris Andreas",
-        author_email="kallinteris@protonmail.com",
-        requirements=["mujoco==3.2.3", "gymnasium>=1.0.0"],
-        description=open(f"./descriptions/{env_id}-{proficiency}.md", "r").read(),
-    )
+
+def collect_replay_data(env, env_id, algo, proficiency, seed, obs_size=None):
+    # Restrict obs, for HumanoidStandup
+    if obs_size is not None:
+        restricted_obs_space = gym.spaces.Box(-np.inf, np.inf, (obs_size,), np.float64)
+        env = TransformObservation(env, lambda obs: obs[:obs_size], restricted_obs_space)
+
+    # Note: Unlike the reference policies, we train without parallel environments for replay datasets
+    model = initialize_model(algo.lower(), env_id, env, "MlpPolicy", seed, device="cuda")
+    model.learn(total_timesteps=TIMESTEPS[f"{env_id}-{proficiency[:-7]}"], progress_bar=True)
+    return lambda x: model.predict(x)[0]
 
 
 def load_policy(env_id: str, algo: str, proficiency: str):
-    model_checkpoint = load_from_hub(
-        repo_id=f"farama-minari/{env_id}-v5-{algo.upper()}-{proficiency}",
-        filename=f"{env_id.lower()}-v5-{algo.upper()}-{proficiency}.zip",
-    )
+    env = make_env(env_id)
+    obs_size = env.observation_space.shape[0]
+
+    if proficiency == "random":
+        return lambda _: env.action_space.sample()
+
+    repo_id = f"farama-minari/{env_id}-v5-{algo.upper()}-{proficiency}"
+    filename_upper = f"{env_id.lower()}-v5-{algo.upper()}-{proficiency}.zip"
+    filename_lower = f"{env_id.lower()}-v5-{algo.lower()}-{proficiency}.zip"
+
+    # Some models use uppercase convention, some lowercase
+    try:
+        model_checkpoint = load_from_hub(repo_id, filename_upper)
+    except EntryNotFoundError:
+        model_checkpoint = load_from_hub(repo_id, filename_lower)
 
     match algo:
         case "SAC":
@@ -95,7 +115,36 @@ def load_policy(env_id: str, algo: str, proficiency: str):
         case "TQC":
             policy = TQC.load(model_checkpoint)
 
-    return policy
+    # Restrict observation to original env size, for HumanoidStandup
+    return lambda x: policy.predict(x[:obs_size])[0]
+
+
+def get_expert_ref_min_max(env_id):
+    dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/expert-{DATASET_VERSION}")
+    ref_min_score = dataset.storage.metadata["ref_min_score"]
+    ref_max_score = dataset.storage.metadata["ref_max_score"]
+    return ref_min_score, ref_max_score
+
+
+def create_medium_expert_mixture_dataset(env_id, proficiency):
+    common_keys = ["code_permalink", "algorithm_name", "ref_max_score", "ref_min_score", "num_episodes_average_score", "requirements"]
+    expert_dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/expert-{DATASET_VERSION}")
+    medium_dataset = minari.load_dataset(f"mujoco/{env_id.lower()}/medium-{DATASET_VERSION}")
+    new_dataset_id=f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}"
+
+    combined_metadata = {
+        "description": open(f"./descriptions/{env_id}-{proficiency}.md", "r").read(),
+        "author": AUTHOR,
+        "author_email": AUTHOR_EMAIL,
+    }
+
+    for key in common_keys:
+        assert expert_dataset.storage.metadata[key] == medium_dataset.storage.metadata[key]
+        combined_metadata[key] = expert_dataset.storage.metadata[key]
+
+    new_dataset = minari.combine_datasets([medium_dataset, expert_dataset], new_dataset_id)
+    new_dataset.storage.update_metadata(combined_metadata)
+    return new_dataset
 
 
 if __name__ == "__main__":
@@ -110,25 +159,62 @@ if __name__ == "__main__":
 
         # make datasets
         for proficiency in proficiencies:
-            print(f"\nCREATING {proficiency.upper()} DATASET FOR {env_id}")
-            env = make_env(env_id, render_mode=None, use_monitor_wrapper=False)
-            env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
-            if add_excluded_obs:
-                env = minari.DataCollector(
-                    env,
-                    step_data_callback=AddExcludedObservationElements,
-                    observation_space=gym.spaces.Box(-np.inf, np.inf, (observation_size,), np.float64),
-                    record_infos=False,
-                )
-            else:
-                env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
+            dataset_id = f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}"
 
-            policy = load_policy(env_id, algo, proficiency)
-            dataset = create_dataset_from_policy(
-                env_id,
-                proficiency,
-                env,
-                lambda x: policy.predict(x)[0],
-                n_steps,
-                algo,
-            )
+            if dataset_id in minari.list_local_datasets():
+                print(f"\nSKIPPING {proficiency.upper()} DATASET FOR {env_id}")
+                continue
+
+            print(f"\nCREATING {proficiency.upper()} DATASET FOR {env_id}")
+
+            if proficiency == "medium-expert":
+                # Mixture datasets
+                create_medium_expert_mixture_dataset(env_id, proficiency)
+            else:
+                # Standard + replay datasets
+                env = make_env(env_id, render_mode=None, use_monitor_wrapper=False)
+                env.spec.kwargs = {}  # overwrite the spec for the dataset since we include the observations with the callback
+                if add_excluded_obs:
+                    restricted_obs_size = env.observation_space.shape[0]
+                    env = minari.DataCollector(
+                        env,
+                        step_data_callback=AddExcludedObservationElements,
+                        observation_space=gym.spaces.Box(-np.inf, np.inf, (observation_size,), np.float64),
+                        record_infos=False,
+                    )
+                else:
+                    restricted_obs_size = None
+                    env = minari.DataCollector(env, record_infos=False)  # TODO record_info?
+
+                if "replay" in proficiency:
+                    policy = collect_replay_data(
+                        env=env,
+                        env_id=env_id,
+                        algo=algo,
+                        proficiency=proficiency,
+                        seed=123,
+                        obs_size=restricted_obs_size
+                    )
+                else:
+                    policy = load_policy(env_id, algo, proficiency)
+                    collect_data_from_policy(env, policy, n_steps)
+
+                if proficiency == "expert":
+                    expert_policy = policy
+                    ref_min_score, ref_max_score = None, None
+                else:
+                    expert_policy = None
+                    ref_min_score, ref_max_score = get_expert_ref_min_max(env_id)
+
+                dataset = env.create_dataset(
+                    dataset_id=dataset_id,
+                    algorithm_name=f"sb3/{algo}",
+                    code_permalink="https://github.com/farama-foundation/minari-dataset-generation-scripts",
+                    author=AUTHOR,
+                    author_email=AUTHOR_EMAIL,
+                    requirements=["mujoco==3.2.3", "gymnasium>=1.0.0"],
+                    description=open(f"./descriptions/{env_id}-{proficiency}.md", "r").read(),
+                    ref_min_score=ref_min_score,
+                    ref_max_score=ref_max_score,
+                    expert_policy=expert_policy,
+                )

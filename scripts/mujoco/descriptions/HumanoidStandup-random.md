@@ -1,0 +1,1 @@
+The data is collected from the [HumanoidStandup](https://gymnasium.farama.org/environments/mujoco/humanoid_standup/) environment. The Agent was trained with a random policy, without the `cinert`, `cvel`, `qfcr_actuator`, `cfrc_ext` observations.

@@ -13,7 +13,7 @@ from wandb.integration.sb3 import WandbCallback
 
 import wandb
 
-# NOTE: different timesteps are used for different environments/proficiencies, check `config.yaml` for indivigual values
+# NOTE: different timesteps are used for different environments/proficiencies, check `config.py` for individual values
 HF_REPO = "farama-minari"
 
 ALGORITHM = "sac"
