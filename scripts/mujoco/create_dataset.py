@@ -38,6 +38,8 @@ ENV_IDS = [
 ]
 
 DATASET_VERSION = "v0"
+AUTHOR = {"kallinteris andreas", "Alex Davey"}
+AUTHOR_EMAIL = {"kallinteris@protonmail.com", "alexdavey0@gmail.com"}
 
 
 class AddExcludedObservationElements(StepDataCallback):
@@ -131,7 +133,9 @@ def create_medium_expert_mixture_dataset(env_id, proficiency):
     new_dataset_id=f"mujoco/{env_id.lower()}/{proficiency}-{DATASET_VERSION}"
 
     combined_metadata = {
-        "description": open(f"./descriptions/{env_id}-{proficiency}.md", "r").read()
+        "description": open(f"./descriptions/{env_id}-{proficiency}.md", "r").read(),
+        "author": AUTHOR,
+        "author_email": AUTHOR_EMAIL,
     }
 
     for key in common_keys:
@@ -206,8 +210,8 @@ if __name__ == "__main__":
                     dataset_id=dataset_id,
                     algorithm_name=f"sb3/{algo}",
                     code_permalink="https://github.com/farama-foundation/minari-dataset-generation-scripts",
-                    author="kallinteris andreas",
-                    author_email="kallinteris@protonmail.com",
+                    author=AUTHOR,
+                    author_email=AUTHOR_EMAIL,
                     requirements=["mujoco==3.2.3", "gymnasium>=1.0.0"],
                     description=open(f"./descriptions/{env_id}-{proficiency}.md", "r").read(),
                     ref_min_score=ref_min_score,
