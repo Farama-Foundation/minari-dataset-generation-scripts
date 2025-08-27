@@ -30,8 +30,8 @@ def print_maze_stats(dataset):
         coords = ep.observations["achieved_goal"]
         velocity_sum += np.linalg.norm(coords[1:] - coords[:-1], axis=1).sum()
 
-    print("  | Success rate:", successes / dataset.total_episodes)
     print("  | Avg velocity:", velocity_sum / dataset.total_steps)
+    print("  | Success rate:", successes / len(dataset))
 
 
 def check_maze_reset_nonterminal(dataset, reset_threshold=0.5):
@@ -52,7 +52,7 @@ def check_qpos_qvel_identical_values(dataset):
     qpos = check_dataset.get_infos(dataset, "qpos")
     qvel = check_dataset.get_infos(dataset, "qvel")
 
-    for i in range(dataset.total_episodes):
+    for i in range(len(dataset)):
         for values in [qpos[i], qvel[i]]:
             if len(values) < 3:
                 continue
@@ -90,13 +90,13 @@ def check_qpos_qvel_shapes(dataset):
     qvel = check_dataset.get_infos(dataset, "qvel")
 
     qpos_message = (
-        f"Expected infos/qpos to have length {dataset.total_episodes}, got {len(qpos)}"
+        f"Expected infos/qpos to have length {len(dataset)}, got {len(qpos)}"
     )
     qvel_message = (
-        f"Expected infos/qvel to have length {dataset.total_episodes}, got {len(qvel)}"
+        f"Expected infos/qvel to have length {len(dataset)}, got {len(qvel)}"
     )
-    assert len(qpos) == dataset.total_episodes, qpos_message
-    assert len(qvel) == dataset.total_episodes, qvel_message
+    assert len(qpos) == len(dataset), qpos_message
+    assert len(qvel) == len(dataset), qvel_message
 
     for i, ep in enumerate(dataset):
         num_steps = len(ep) + 1  # Same number of steps as observation
