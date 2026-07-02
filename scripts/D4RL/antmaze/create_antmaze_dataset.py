@@ -99,12 +99,14 @@ EVAL_ENV_MAPS = {"umaze": [[1, 1, 1, 1, 1],
                     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
                 }
 
-DATASET_ID_TO_ENV_ID = {"antmaze-umaze-v1": "AntMaze_UMaze-v4",
-                        "antmaze-umaze-diverse-v1": "AntMaze_UMaze-v4",
-                        "antmaze-medium-play-v1": "AntMaze_Medium-v4",
-                        "antmaze-medium-diverse-v1": "AntMaze_Medium_Diverse_GR-v4",
-                        "antmaze-large-diverse-v1": "AntMaze_Large_Diverse_GR-v4",
-                        "antmaze-large-play-v1": "AntMaze_Large-v4"}
+# v2 bumps the dataset version: the reward is now sparse/episodic (see the
+# continuing_task change below), which is a breaking change from the v1 datasets.
+DATASET_ID_TO_ENV_ID = {"antmaze-umaze-v2": "AntMaze_UMaze-v4",
+                        "antmaze-umaze-diverse-v2": "AntMaze_UMaze-v4",
+                        "antmaze-medium-play-v2": "AntMaze_Medium-v4",
+                        "antmaze-medium-diverse-v2": "AntMaze_Medium_Diverse_GR-v4",
+                        "antmaze-large-diverse-v2": "AntMaze_Large_Diverse_GR-v4",
+                        "antmaze-large-play-v2": "AntMaze_Large-v4"}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
