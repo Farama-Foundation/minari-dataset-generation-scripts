@@ -137,10 +137,12 @@ if __name__ == "__main__":
         else:
             dataset = None
 
-        # Continuing task => the episode doesn't terminate or truncate. The goal
-        # is also not reset when it is reached, leading to reward accumulation.
-        # We set the maximum episode steps to the desired size of our Minari
-        # dataset (evade truncation due to time limit)
+        # Episodic task: with continuing_task disabled the environment terminates
+        # as soon as the ant reaches the goal, so each episode is a single
+        # navigation that ends with a sparse +1 reward, matching D4RL AntMaze.
+        # (With continuing_task=True the goal is never reset and the ant idles on
+        # it, accumulating dense reward that diverges from D4RL and, in particular,
+        # breaks CQL, whose antmaze reward transform assumes sparse reward.)
         split_dataset_id = dataset_id.split('-')
         if split_dataset_id[1] == "umaze" and split_dataset_id[2] != "diverse":
             maze_map = [[1, 1, 1, 1, 1],
@@ -149,11 +151,11 @@ if __name__ == "__main__":
                         [1, R, 0, 0, 1],
                         [1, 1, 1, 1, 1]]
             env = gym.make(
-                env_id, maze_map=maze_map, continuing_task=True, reset_target=False,
+                env_id, maze_map=maze_map, continuing_task=False,
             )
         else:
             env = gym.make(
-                env_id, continuing_task=True, reset_target=False,
+                env_id, continuing_task=False,
             )
         # Data collector wrapper to save temporary data while stepping. Characteristics:
         #   * Custom StepDataCallback to add extra state information to 'infos' and divide dataset in
@@ -182,7 +184,7 @@ if __name__ == "__main__":
             action += args.action_noise * np.random.randn(*action.shape)
             action = np.clip(action, -1.0, 1.0)
 
-            obs, _, _, truncated, info = collector_env.step(action)
+            obs, _, terminated, truncated, info = collector_env.step(action)
 
             if (step + 1) % args.checkpoint_interval == 0:
                 truncated = True
@@ -197,8 +199,9 @@ if __name__ == "__main__":
                 else:
                     collector_env.add_to_dataset(dataset)
 
-            # Reset the environment, either due to timeout or checkpointing.
-            if truncated:
+            # Reset the environment when the goal is reached (termination), on
+            # timeout, or at a checkpoint boundary.
+            if terminated or truncated:
                 seed += 1  # Increment the seed to prevent repeating old episodes
                 obs, info = collector_env.reset(seed=seed)
 
