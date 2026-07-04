@@ -63,12 +63,18 @@ def wrap_maze_obs(obs, waypoint_xy):
     return observation
 
 
-def init_dataset(collector_env, dataset_id, eval_env_spec, expert_policy, args):
+def init_dataset(collector_env, dataset_id, eval_env_spec, args):
     """Initialise a local Minari dataset."""
     return collector_env.create_dataset(
         dataset_id=dataset_id,
         eval_env=eval_env_spec,
-        expert_policy=expert_policy,
+        # Use the D4RL-canonical AntMaze normalization reference: with the sparse
+        # episodic reward (continuing_task=False) an episode returns +1 iff the goal
+        # is reached, so the reference range is [0, 1]. Fixing ref_max_score=1.0
+        # (rather than deriving it from an expert policy's empirical success rate)
+        # makes the normalized scores directly comparable to published D4RL numbers.
+        ref_min_score=0.0,
+        ref_max_score=1.0,
         algorithm_name=f"{args.maze_solver}+SAC",
         code_permalink="https://github.com/rodrigodelazcano/d4rl-minari-dataset-generation",
         author=args.author,
@@ -194,10 +200,7 @@ if __name__ == "__main__":
                 if dataset is None:
                     eval_env_spec = deepcopy(env.spec)
                     eval_env_spec.kwargs['maze_map'] = EVAL_ENV_MAPS[split_dataset_id[1]]
-                    eval_env = gym.make(eval_env_spec)
-                    eval_waypoint_controller = WaypointController(eval_env.unwrapped.maze, action_callback)
-                    dataset = init_dataset(collector_env, dataset_id, eval_env_spec, eval_waypoint_controller.compute_action, args)
-                    eval_env.close()
+                    dataset = init_dataset(collector_env, dataset_id, eval_env_spec, args)
                 else:
                     collector_env.add_to_dataset(dataset)
 
