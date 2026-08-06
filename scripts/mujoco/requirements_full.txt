@@ -61,7 +61,7 @@ platformdirs==4.3.6
 proglog==0.1.10
 protobuf==5.29.2
 psutil==6.1.1
-Pygments==2.18.0
+Pygments==2.20.0
 PyOpenGL==3.1.7
 pyparsing==3.2.0
 python-dateutil==2.9.0.post0
