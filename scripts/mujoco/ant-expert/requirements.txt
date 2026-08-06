@@ -70,7 +70,7 @@ optax==0.2.3
 orbax-checkpoint==0.7.0
 packaging==24.1
 pandas==2.2.3
-pillow==10.4.0
+pillow==12.3.0
 proglog==0.1.10
 proto-plus==1.24.0
 protobuf==5.28.2
