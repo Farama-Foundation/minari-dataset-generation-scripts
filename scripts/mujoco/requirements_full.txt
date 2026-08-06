@@ -20,7 +20,7 @@ gymnasium==1.0.0
 h5py==3.12.1
 huggingface-hub==0.27.0
 -e git+ssh://git@github.com/Kallinteris-Andreas/huggingface_sb3_kalli.git@e54d3cf51f5d082bed01e385fc906455183ae88c#egg=huggingface_sb3
-idna==3.10
+idna==3.15
 imageio==2.36.1
 imageio-ffmpeg==0.5.1
 importlib_resources==6.4.5
