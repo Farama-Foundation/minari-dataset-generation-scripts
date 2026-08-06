@@ -15,7 +15,7 @@ decorator==4.4.2
 etils==1.9.4
 Farama-Notifications==0.0.4
 fasteners==0.19
-filelock==3.16.1
+filelock==3.20.3
 flax==0.9.0
 fonttools==4.60.2
 fsspec==2024.9.0
