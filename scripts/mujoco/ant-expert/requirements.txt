@@ -36,7 +36,7 @@ imageio-ffmpeg==0.5.1
 importlib_resources==6.4.5
 jax==0.4.34
 jaxlib==0.4.34
-Jinja2==3.1.4
+Jinja2==3.1.6
 kiwisolver==1.4.7
 markdown-it-py==3.0.0
 MarkupSafe==3.0.1
